@@ -1,0 +1,3107 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="copilot-frame-autosave" content="off">
+    <title>Зааварчилгааны бүртгэл /ПЧ-2 ПД-2/</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.1)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,144C960,149,1056,139,1152,122.7C1248,107,1344,85,1392,74.7L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.3;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            padding: 24px 30px;
+            background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+            border-bottom: 2px solid #e6e9f2;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(.2,.8,.2,1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+        }
+
+        .btn-pdf:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 123, 255, 0.4);
+        }
+
+        .btn-sheet {
+            background: linear-gradient(135deg, #0f9d58 0%, #0b8043 100%);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-sheet:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(15, 157, 88, 0.35);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-delete-selected {
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white;
+        }
+
+        .btn-delete-selected:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(234, 88, 12, 0.35);
+        }
+
+        .btn-delete-selected:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .save-status {
+            color: #28a745;
+            font-weight: 600;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .save-status.show {
+            opacity: 1;
+        }
+
+        .table-section {
+            padding: 30px;
+        }
+
+        .meta-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+            padding: 28px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border-radius: 16px;
+            border: 2px solid #e6e9f2;
+            box-shadow: 0 8px 24px rgba(82,102,214,0.08);
+        }
+
+        .meta-actions {
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            justify-content: flex-end;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .meta-actions .btn-clear {
+            margin-left: 0;
+        }
+
+        .daily-summary {
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .summary-card {
+            border: 2px solid #e6e9f2;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            padding: 14px 16px;
+            box-shadow: 0 6px 16px rgba(82,102,214,0.08);
+        }
+
+        .summary-card .label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .summary-card .value {
+            font-size: 26px;
+            font-weight: 800;
+            color: #334155;
+            line-height: 1;
+        }
+
+        .summary-card.verified .value {
+            color: #16a34a;
+        }
+
+        .summary-card.pending .value {
+            color: #dc2626;
+        }
+
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .field-group label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field-group input {
+            padding: 14px 16px;
+            border: 2px solid #e6e9f2;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .field-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 2px solid #e6e9f2;
+            box-shadow: 0 10px 30px rgba(82,102,214,0.08);
+            background: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        td {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fdfdfd;
+        }
+
+        tbody tr.selected-row {
+            background: linear-gradient(90deg, #fff7ed 0%, #fffbeb 100%);
+            box-shadow: inset 4px 0 0 #f59e0b;
+        }
+
+        .row-select {
+            width: 18px;
+            height: 18px;
+            accent-color: #ea580c;
+            cursor: pointer;
+        }
+
+        .row-select-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        input[type="text"],
+        input[type="datetime-local"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="datetime-local"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-qr {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 4px;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+
+        .btn-qr:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-qr.verified {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 36px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #333;
+            background: #f0f0f0;
+            transform: rotate(90deg);
+        }
+
+        .qr-scanner-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+        }
+
+        #qrReader {
+            border: 3px dashed #e9ecef;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .scan-result {
+            margin-top: 20px;
+            padding: 18px;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            color: #155724;
+            font-weight: 700;
+            text-align: center;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+        }
+
+        .scan-error {
+            margin-top: 20px;
+            padding: 18px;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            border-radius: 12px;
+            color: #721c24;
+            font-weight: 700;
+            text-align: center;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+        }
+
+        .scan-info {
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #667eea;
+        }
+
+        .scan-info p {
+            margin: 8px 0;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .scan-info strong {
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .saved-card {
+            border: 2px solid #e6e9f2;
+            border-left: 6px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            box-shadow: 0 6px 20px rgba(82,102,214,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .saved-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(82,102,214,0.15);
+        }
+
+        .saved-card .saved-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .saved-stats {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .saved-stats .chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .saved-stats .chip.total {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .saved-stats .chip.verified {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .saved-stats .chip.pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .saved-card .saved-title strong {
+            color: #333;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .saved-card .saved-date {
+            opacity: 0.9;
+            font-size: 17px;
+            font-weight: 800;
+            color: #0f172a;
+            background: rgba(15, 23, 42, 0.12);
+            padding: 8px 14px;
+            border-radius: 6px;
+        }
+
+        .negative-choice,
+        .negative-value {
+            color: #b91c1c;
+            font-weight: 700;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .status-pill.verified {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-pill.pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .saved-instructions-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border-top: 4px solid #667eea;
+            border-radius: 16px;
+        }
+
+        .saved-instructions-section h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sheet-records-section {
+            margin-top: 32px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+            border: 2px solid #bbf7d0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(22, 163, 74, 0.08);
+        }
+
+        .sheet-records-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .sheet-records-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #14532d;
+        }
+
+        .sheet-records-meta {
+            font-size: 14px;
+            color: #166534;
+        }
+
+        .btn-refresh-sheet {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+        }
+
+        .sheet-records-status {
+            font-size: 14px;
+            color: #166534;
+            margin-bottom: 14px;
+            min-height: 20px;
+        }
+
+        .sheet-records-table th,
+        .sheet-records-table td {
+            font-size: 13px;
+            padding: 12px 10px;
+        }
+
+        .sheet-empty {
+            padding: 20px;
+            text-align: center;
+            color: #64748b;
+            background: #ffffff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+        }
+
+        .sheet-gallery-content {
+            max-width: min(1180px, 94vw);
+            width: min(1180px, 94vw);
+            max-height: 88vh;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(180deg, #fffef8 0%, #f6f8ff 100%);
+        }
+
+        .sheet-gallery-shell {
+            display: flex;
+            flex-direction: column;
+            max-height: 88vh;
+        }
+
+        .sheet-gallery-shell .modal-header {
+            margin-bottom: 0;
+            padding: 24px 28px 18px;
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            border-bottom: none;
+        }
+
+        .sheet-gallery-shell .modal-header h3 {
+            color: #ffffff;
+        }
+
+        .sheet-gallery-shell .modal-close {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .sheet-gallery-shell .modal-close:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .sheet-gallery-toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px 28px 14px;
+        }
+
+        .sheet-gallery-meta {
+            color: #334155;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .sheet-gallery-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .sheet-gallery-status {
+            min-height: 22px;
+            padding: 0 28px 16px;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .sheet-gallery-scroll {
+            overflow-y: auto;
+            padding: 0 28px 28px;
+        }
+
+        .sheet-day-group {
+            margin-bottom: 28px;
+        }
+
+        .sheet-day-header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%);
+            color: #ffffff;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+        }
+
+        .sheet-day-title {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .sheet-day-count {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .sheet-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 18px;
+        }
+
+        .sheet-photo-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        }
+
+        .sheet-photo-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.18), transparent 34%),
+                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.14), transparent 30%);
+            pointer-events: none;
+        }
+
+        .sheet-photo-top {
+            position: relative;
+            min-height: 120px;
+            padding: 20px;
+            background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 45%, #ecfeff 100%);
+        }
+
+        .sheet-photo-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #0f172a;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .sheet-photo-name {
+            margin-top: 18px;
+            font-size: 22px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .sheet-photo-body {
+            position: relative;
+            padding: 18px 20px 20px;
+        }
+
+        .sheet-photo-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .sheet-photo-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .sheet-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .sheet-pill.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .sheet-pill.pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .sheet-pill.info {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .sheet-photo-meta {
+            display: grid;
+            gap: 10px;
+        }
+
+        .sheet-photo-row {
+            display: grid;
+            grid-template-columns: 96px 1fr;
+            gap: 10px;
+            align-items: start;
+            font-size: 13px;
+        }
+
+        .sheet-photo-label {
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .sheet-photo-value {
+            color: #0f172a;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .sheet-gallery-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 240px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px dashed #cbd5e1;
+            color: #475569;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .controls {
+                padding: 18px;
+            }
+
+            .table-section {
+                padding: 18px;
+            }
+
+            .meta-fields {
+                grid-template-columns: 1fr;
+                padding: 18px;
+            }
+
+            th, td {
+                font-size: 13px;
+                padding: 12px 10px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .modal-content {
+                padding: 24px;
+            }
+
+            .sheet-gallery-content {
+                width: 96vw;
+            }
+
+            .sheet-gallery-toolbar,
+            .sheet-gallery-status,
+            .sheet-gallery-scroll,
+            .sheet-gallery-shell .modal-header {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .sheet-photo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sheet-photo-row {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .controls, .btn-qr, .meta-actions {
+                display: none;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Зааварчилгааны бүртгэлийн хүснэгт</h1>
+            <p>Аюулгүй ажиллагааны зааварчилгааны бүртгэл</p>
+        </div>
+
+        <div class="table-section">
+            <div class="meta-fields">
+                <div class="field-group">
+                    <label for="metaInstructionName">📋 Зааварчилгааны нэр</label>
+                    <input type="text" id="metaInstructionName" placeholder="ЭШП хийх">
+                </div>
+                <div class="field-group">
+                    <label for="metaInstructionGiver">👤 Зааварчилгааг өгсөн хүний нэр</label>
+                    <input type="text" id="metaInstructionGiver" placeholder="ПД Б.Баасанжаргал">
+                </div>
+                <div class="meta-actions">
+                    <button id="saveInstructionBtn" class="btn btn-add">💾 Зааварчилгаа хадгалах</button>
+                    <button id="deleteSelectedBtn" class="btn btn-delete-selected" disabled>🗑️ Сонгосон мөр устгах</button>
+                    <div id="saveStatus" class="save-status">
+                        <span>✓</span>
+                        <span>Хадгалагдсан</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="daily-summary">
+                <div class="summary-card">
+                    <div class="label">Нийт хүн</div>
+                    <div class="value" id="summaryTotal">0</div>
+                </div>
+                <div class="summary-card verified">
+                    <div class="label">QR уншуулсан</div>
+                    <div class="value" id="summaryVerified">0</div>
+                </div>
+                <div class="summary-card pending">
+                    <div class="label">QR уншуулаагүй</div>
+                    <div class="value" id="summaryPending">0</div>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="myTable" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 72px;"><input id="selectAllRows" class="row-select" type="checkbox" title="Бүх мөр сонгох"></th>
+                            <th style="width: 60px;">№</th>
+                            <th style="width: 180px;">Зааварчилгаа авсан хүний нэр</th>
+                            <th style="width: 120px;">Эрүүл мэнд хэвийн эсэх</th>
+                            <th style="width: 140px;">Хамгаалах хэрэгсэл бүрэн эсэх</th>
+                            <th style="width: 120px;">Ажлын хувцас бүрэн өмсөн эсэх</th>
+                            <th style="width: 220px;">Бусад тайлбар</th>
+                            <th style="width: 140px;">Баталгаажуулах</th>
+                            <th id="verifiedAtHeader" style="width: 180px; display: none;">Танилцсан</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="saved-instructions-section" id="savedInstructionsSection">
+                <h2>📚 Өмнөх зааварчилгааны түүх</h2>
+                <div id="savedInstructionsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>📷 QR код уншуулах</h3>
+                <button class="modal-close" onclick="closeQrModal()">&times;</button>
+            </div>
+            
+            <div class="scan-info">
+                <p>Баталгаажуулах хүн:</p>
+                <p><strong id="qrPersonName"></strong></p>
+            </div>
+
+            <div class="qr-scanner-container">
+                <div id="qrReader"></div>
+                <div id="scanResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sheetGalleryModal" class="modal">
+        <div class="modal-content sheet-gallery-content">
+            <div class="sheet-gallery-shell">
+                <div class="modal-header">
+                    <h3>📸 Өдөр өдрөөр ангилсан бүртгэлийн харагдац</h3>
+                    <button class="modal-close" onclick="closeSheetGalleryModal()">&times;</button>
+                </div>
+                <div class="sheet-gallery-toolbar">
+                    <div id="sheetGalleryMeta" class="sheet-gallery-meta">Google Sheets-с татсан мэдээлэл</div>
+                    <div class="sheet-gallery-actions">
+                        <button id="refreshSheetGalleryBtn" class="btn btn-refresh-sheet">🔄 Дахин татах</button>
+                        <a id="openSheetBrowserLink" class="btn btn-sheet" href="#" target="_blank" rel="noopener noreferrer">📄 Жинхэнэ Google Sheets</a>
+                    </div>
+                </div>
+                <div id="sheetGalleryStatus" class="sheet-gallery-status"></div>
+                <div id="sheetGalleryContainer" class="sheet-gallery-scroll"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        const DEFAULT_PEOPLE = [
+            "пр-4 Б.НямЭрдэнэ",
+            "пр-3 Б.Мөнхбат",
+            "ПД Б.Баасанжаргал"
+        ];
+
+        let peopleOptions = [...DEFAULT_PEOPLE];
+
+        let data = [
+            { name: DEFAULT_PEOPLE[0], health: "Тийм", ppe: "Тийм", clothes: "Тийм", note: "", verified: false, verifiedAt: "" }
+        ];
+
+        let storedInstructions = [];
+
+        let meta = {
+            dateTime: getLocalDateTimeInputValue(),
+            instructionName: "",
+            instructionGiver: ""
+        };
+
+        let currentQrIndex = null;
+        let html5QrCode = null;
+        let qrScanInProgress = false;
+        let qrScannerStarting = false;
+        let qrScannerStopPromise = null;
+        let qrCloseTimer = null;
+        let sheetRecordsCache = [];
+        let sheetDerivedInstructions = [];
+        let selectedRows = new Set();
+        const GOOGLE_SHEET_ID = '1hDl6BzB88HFGoLgCvyHs_XGroF619mZnCcYkCemxuRc';
+        const GOOGLE_SHEET_GID = '0';
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1hDl6BzB88HFGoLgCvyHs_XGroF619mZnCcYkCemxuRc/edit?usp=sharing';
+        const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbysXojSTMP3VnFpFsovsKF50E854wL9DJ-3HvETHq5eeWrUuaJKrzL_NrbpEC1mku0/exec';
+        const GOOGLE_SHEETS_READ_SHEET = 'PD-1';
+        const scriptURL = GOOGLE_SHEETS_WEB_APP_URL;
+        const SHEETS_SYNC_TIMEOUT_MS = 10000;
+
+        const tableBody = document.getElementById('tableBody');
+        const saveInstructionBtn = document.getElementById('saveInstructionBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const metaInstructionName = document.getElementById('metaInstructionName');
+        const metaInstructionGiver = document.getElementById('metaInstructionGiver');
+        const saveStatus = document.getElementById('saveStatus');
+        const sheetGalleryModal = document.getElementById('sheetGalleryModal');
+        const sheetGalleryMeta = document.getElementById('sheetGalleryMeta');
+        const sheetGalleryStatus = document.getElementById('sheetGalleryStatus');
+        const sheetGalleryContainer = document.getElementById('sheetGalleryContainer');
+        const refreshSheetGalleryBtn = document.getElementById('refreshSheetGalleryBtn');
+        const openSheetBrowserLink = document.getElementById('openSheetBrowserLink');
+        const refreshSheetBtn = document.getElementById('refreshSheetBtn');
+        const sheetRecordsMeta = document.getElementById('sheetRecordsMeta');
+        const sheetRecordsStatus = document.getElementById('sheetRecordsStatus');
+        const sheetRecordsContainer = document.getElementById('sheetRecordsContainer');
+        const verifiedAtHeader = document.getElementById('verifiedAtHeader');
+        const selectAllRowsCheckbox = document.getElementById('selectAllRows');
+        const summaryTotal = document.getElementById('summaryTotal');
+        const summaryVerified = document.getElementById('summaryVerified');
+        const summaryPending = document.getElementById('summaryPending');
+        const NAME_ACTION_ADD_PERSON = '__action:add-person';
+        const NAME_ACTION_ADD_ROW = '__action:add-row';
+        const NAME_ACTION_EDIT = '__action:edit';
+        const NAME_ACTION_DELETE = '__action:delete';
+
+        function normalizeText(text) {
+            return String(text || '')
+                .normalize('NFKC')
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')
+                .replace(/\u00A0/g, ' ')
+                .replace(/[‐‑‒–—―−]/g, '-')
+                .trim()
+                .replace(/\s+/g, ' ');
+        }
+
+        function normalizeComparableName(text) {
+            return normalizeText(text)
+                .toLocaleLowerCase()
+                .replace(/["'`´’‘]/g, '')
+                .replace(/[.,/#!$%^&*;:{}=+_~()\[\]\\|?<>-]/g, '')
+                .replace(/\s+/g, '');
+        }
+
+        function isQrNameMatch(scannedName, expectedName) {
+            const scannedComparable = normalizeComparableName(scannedName);
+            const expectedComparable = normalizeComparableName(expectedName);
+
+            if (!scannedComparable || !expectedComparable) {
+                return false;
+            }
+
+            return scannedComparable === expectedComparable
+                || scannedComparable.includes(expectedComparable)
+                || expectedComparable.includes(scannedComparable);
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildSheetPayload(person, options = {}) {
+            return {
+            action: options.action || 'qr_verify',
+                spreadsheetId: GOOGLE_SHEET_ID,
+                personName: normalizeText(person?.name),
+                verifiedAt: options.verifiedAt || person?.verifiedAt || '',
+                instructionName: normalizeText(meta.instructionName),
+                instructionGiver: normalizeText(meta.instructionGiver),
+                instructionDateTime: meta.dateTime || '',
+                sheetGid: GOOGLE_SHEET_GID,
+                health: person?.health || '',
+                ppe: person?.ppe || '',
+                clothes: person?.clothes || '',
+                note: normalizeText(person?.note)
+            };
+        }
+
+        function formatDisplayValue(value) {
+            if (value === null || value === undefined || value === '') {
+                return '';
+            }
+
+            if (value instanceof Date) {
+                return formatDateTimeMong(value.toISOString());
+            }
+
+            const text = String(value);
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) {
+                return formatDateTimeMong(text);
+            }
+
+            return text;
+        }
+
+        const SHEET_RECORD_ALIASES = {
+            'Бүртгэсэн огноо': ['Бүртгэсэн огноо', 'Timestamp', 'timestamp', 'Created At', 'createdAt', 'Огноо'],
+            'Зааварчилгааны нэр': ['Зааварчилгааны нэр', 'Instruction Name', 'instructionName', 'Зааварчилгаа'],
+            'Зааварчилгаа өгсөн': ['Зааварчилгаа өгсөн', 'Instruction Giver', 'instructionGiver', 'Өгсөн', 'Өгсөн хүн'],
+            'Ажилтны нэр': ['Ажилтны нэр', 'Employee Name', 'employeeName', 'Нэр', 'Овог нэр', 'Ажилтан'],
+            'Тайлбар': ['Тайлбар', 'Note', 'note', 'Comment', 'comment'],
+            'Зааварчилгааны огноо': ['Зааварчилгааны огноо', 'Instruction Date', 'instructionDate', 'Огноо цаг'],
+            'Эрүүл мэнд': ['Эрүүл мэнд', 'Health', 'health'],
+            'Хамгаалах хэрэгсэл': ['Хамгаалах хэрэгсэл', 'PPE', 'ppe', 'ХХХ'],
+            'Ажлын хувцас': ['Ажлын хувцас', 'Clothes', 'clothes', 'Workwear', 'Хувцас'],
+            'Танилцсан': ['Танилцсан', 'Verified At', 'verifiedAt', 'Баталгаажуулсан', 'Төлөв']
+        };
+
+        const SHEET_RECORD_POSITIONAL_SCHEMAS = [
+            [
+                'Бүртгэсэн огноо',
+                'Ажилтны нэр',
+                'Танилцсан',
+                'Зааварчилгааны нэр',
+                'Зааварчилгаа өгсөн',
+                'Зааварчилгааны огноо',
+                'Эрүүл мэнд',
+                'Хамгаалах хэрэгсэл',
+                'Ажлын хувцас',
+                'Тайлбар'
+            ],
+            [
+                'Бүртгэсэн огноо',
+                'Зааварчилгааны нэр',
+                'Зааварчилгаа өгсөн',
+                'Ажилтны нэр',
+                'Тайлбар',
+                'Зааварчилгааны огноо',
+                'Эрүүл мэнд',
+                'Хамгаалах хэрэгсэл',
+                'Ажлын хувцас',
+                'Танилцсан'
+            ]
+        ];
+
+        function looksLikeDateTime(value) {
+            const text = String(value || '').trim();
+            if (!text) {
+                return false;
+            }
+
+            return !isNaN(new Date(text).getTime());
+        }
+
+        function isYesNoLike(value) {
+            const text = String(value || '').trim().toLocaleLowerCase();
+            return ['тийм', 'үгүй', 'yes', 'no', 'true', 'false'].includes(text);
+        }
+
+        function scorePositionalRecord(record) {
+            let score = 0;
+
+            if (String(record['Ажилтны нэр'] || '').trim()) {
+                score += 4;
+            }
+
+            if (looksLikeDateTime(record['Бүртгэсэн огноо'])) {
+                score += 2;
+            }
+
+            if (looksLikeDateTime(record['Зааварчилгааны огноо'])) {
+                score += 2;
+            }
+
+            if (String(record['Зааварчилгааны нэр'] || '').trim()) {
+                score += 1;
+            }
+
+            if (String(record['Зааварчилгаа өгсөн'] || '').trim()) {
+                score += 1;
+            }
+
+            ['Эрүүл мэнд', 'Хамгаалах хэрэгсэл', 'Ажлын хувцас'].forEach((key) => {
+                if (isYesNoLike(record[key])) {
+                    score += 2;
+                }
+            });
+
+            return score;
+        }
+
+        function buildBestPositionalRecord(rawValues) {
+            let bestRecord = {};
+            let bestScore = -1;
+
+            SHEET_RECORD_POSITIONAL_SCHEMAS.forEach((schema) => {
+                const candidate = {};
+
+                schema.forEach((targetKey, index) => {
+                    const value = String(rawValues[index] || '').trim();
+                    if (value) {
+                        candidate[targetKey] = value;
+                    }
+                });
+
+                const score = scorePositionalRecord(candidate);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestRecord = candidate;
+                }
+            });
+
+            return bestRecord;
+        }
+
+        function firstMeaningfulValue(values = []) {
+            for (const value of values) {
+                if (String(value || '').trim()) {
+                    return String(value).trim();
+                }
+            }
+
+            return '';
+        }
+
+        function normalizeSheetRecord(row) {
+            if (!row || typeof row !== 'object') {
+                return {};
+            }
+
+            const normalized = {};
+
+            Object.entries(SHEET_RECORD_ALIASES).forEach(([targetKey, aliases]) => {
+                normalized[targetKey] = firstMeaningfulValue(
+                    aliases.map((aliasKey) => row?.[aliasKey])
+                );
+            });
+
+            const rawValues = Object.values(row).map((value) => String(value || '').trim());
+            const positionalRecord = buildBestPositionalRecord(rawValues);
+
+            Object.entries(positionalRecord).forEach(([targetKey, value]) => {
+                if (!normalized[targetKey] && String(value || '').trim()) {
+                    normalized[targetKey] = value;
+                }
+            });
+
+            return {
+                ...row,
+                ...normalized
+            };
+        }
+
+        function isMeaningfulSheetRecord(row) {
+            if (!row || typeof row !== 'object') {
+                return false;
+            }
+
+            const personName = getSheetRecordValue(row, ['Ажилтны нэр']);
+            if (!personName) {
+                return false;
+            }
+
+            if (['Ажилтны нэр', 'Зааварчилгааны нэр', 'Зааварчилгаа өгсөн'].includes(personName)) {
+                return false;
+            }
+
+            return [
+                personName,
+                getSheetRecordValue(row, ['Зааварчилгааны нэр']),
+                getSheetRecordValue(row, ['Зааварчилгаа өгсөн']),
+                getSheetRecordValue(row, ['Танилцсан']),
+                getSheetRecordValue(row, ['Тайлбар']),
+                getSheetRecordValue(row, ['Эрүүл мэнд']),
+                getSheetRecordValue(row, ['Хамгаалах хэрэгсэл']),
+                getSheetRecordValue(row, ['Ажлын хувцас'])
+            ].some((value) => String(value || '').trim() !== '');
+        }
+
+        function getSheetRecordSortTime(row) {
+            const primaryDate = getSheetRecordValue(row, ['Бүртгэсэн огноо', 'Зааварчилгааны огноо']);
+            const fallbackDate = getSheetRecordValue(row, ['Зааварчилгааны огноо', 'Бүртгэсэн огноо']);
+            const parsedTime = new Date(primaryDate || fallbackDate || '').getTime();
+            return Number.isFinite(parsedTime) ? parsedTime : 0;
+        }
+
+        function renderSheetRecords(records) {
+            if (!sheetRecordsContainer) {
+                return;
+            }
+
+            if (!records.length) {
+                sheetRecordsContainer.innerHTML = '<div class="sheet-empty">Google Sheets дээр хараахан мөр бүртгэгдээгүй байна.</div>';
+                return;
+            }
+
+            const rowsHtml = records.map((row, index) => `
+                <tr>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>${escapeHtml(formatDisplayValue(row['Бүртгэсэн огноо']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Ажилтны нэр']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Танилцсан']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Зааварчилгааны нэр']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Зааварчилгаа өгсөн']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Зааварчилгааны огноо']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Эрүүл мэнд']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Хамгаалах хэрэгсэл']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Ажлын хувцас']))}</td>
+                    <td>${escapeHtml(formatDisplayValue(row['Тайлбар']))}</td>
+                </tr>
+            `).join('');
+
+            sheetRecordsContainer.innerHTML = `
+                <table class="sheet-records-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">№</th>
+                            <th>Бүртгэсэн огноо</th>
+                            <th>Ажилтны нэр</th>
+                            <th>Танилцсан</th>
+                            <th>Зааварчилгааны нэр</th>
+                            <th>Зааварчилгаа өгсөн</th>
+                            <th>Зааварчилгааны огноо</th>
+                            <th>Эрүүл мэнд</th>
+                            <th>Хамгаалах хэрэгсэл</th>
+                            <th>Ажлын хувцас</th>
+                            <th>Тайлбар</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            `;
+        }
+
+        function getSheetRecordValue(row, keys) {
+            for (const key of keys) {
+                const value = row?.[key];
+                if (String(value || '').trim()) {
+                    return String(value).trim();
+                }
+            }
+
+            return '';
+        }
+
+        function toSheetDayKey(value) {
+            const parsedDate = new Date(value || '');
+            if (isNaN(parsedDate)) {
+                return 'unknown';
+            }
+
+            const yyyy = parsedDate.getFullYear();
+            const mm = String(parsedDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(parsedDate.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function formatSheetDayLabel(dayKey) {
+            if (dayKey === 'unknown') {
+                return 'Огноо тодорхойгүй';
+            }
+
+            return formatDateTimeMong(`${dayKey}T00:00`).replace(/,\s*00:00$/, '');
+        }
+
+        function formatSheetTimeLabel(value) {
+            const parsedDate = new Date(value || '');
+            if (isNaN(parsedDate)) {
+                return 'Цаг тодорхойгүй';
+            }
+
+            const HH = String(parsedDate.getHours()).padStart(2, '0');
+            const MM = String(parsedDate.getMinutes()).padStart(2, '0');
+            return `${HH}:${MM}`;
+        }
+
+        function groupSheetRecordsByDay(records) {
+            const grouped = new Map();
+
+            records.forEach((row) => {
+                const sourceDate = getSheetRecordValue(row, ['Зааварчилгааны огноо', 'Бүртгэсэн огноо']);
+                const dayKey = toSheetDayKey(sourceDate);
+
+                if (!grouped.has(dayKey)) {
+                    grouped.set(dayKey, []);
+                }
+
+                grouped.get(dayKey).push(row);
+            });
+
+            return Array.from(grouped.entries())
+                .sort((left, right) => right[0].localeCompare(left[0]))
+                .map(([dayKey, items]) => ({ dayKey, items }));
+        }
+
+        function buildInstructionHistoryFromSheetRecords(records) {
+            const grouped = new Map();
+
+            records.forEach((row) => {
+                const instructionName = getSheetRecordValue(row, ['Зааварчилгааны нэр']) || 'Зааварчилгаа';
+                const instructionGiver = getSheetRecordValue(row, ['Зааварчилгаа өгсөн']) || '';
+                const instructionDateTime = getSheetRecordValue(row, ['Зааварчилгааны огноо', 'Бүртгэсэн огноо']) || '';
+                const createdAt = getSheetRecordValue(row, ['Бүртгэсэн огноо', 'Зааварчилгааны огноо']) || instructionDateTime;
+                const groupKey = getInstructionHistoryKey({
+                    createdAt,
+                    meta: {
+                        instructionName,
+                        instructionGiver,
+                        dateTime: instructionDateTime
+                    }
+                });
+
+                if (!grouped.has(groupKey)) {
+                    grouped.set(groupKey, {
+                        id: `sheet-${groupKey || Date.now()}`,
+                        createdAt,
+                        meta: {
+                            instructionName,
+                            instructionGiver,
+                            dateTime: instructionDateTime
+                        },
+                        data: []
+                    });
+                }
+
+                const entry = grouped.get(groupKey);
+                const verifiedStatus = getSheetRecordValue(row, ['Танилцсан']);
+                entry.data.push({
+                    name: getSheetRecordValue(row, ['Ажилтны нэр']) || '',
+                    health: getSheetRecordValue(row, ['Эрүүл мэнд']) || '',
+                    ppe: getSheetRecordValue(row, ['Хамгаалах хэрэгсэл']) || '',
+                    clothes: getSheetRecordValue(row, ['Ажлын хувцас']) || '',
+                    note: getSheetRecordValue(row, ['Тайлбар']) || '',
+                    verified: Boolean(verifiedStatus),
+                    verifiedAt: verifiedStatus || ''
+                });
+            });
+
+            return Array.from(grouped.values())
+                .sort((left, right) => {
+                    const leftTime = parseDateTimeValue(resolveInstructionDateTime(left))?.getTime() || 0;
+                    const rightTime = parseDateTimeValue(resolveInstructionDateTime(right))?.getTime() || 0;
+                    return rightTime - leftTime;
+                })
+                .map((entry) => ({
+                    ...entry,
+                    data: entry.data.sort((left, right) => left.name.localeCompare(right.name, 'mn', { sensitivity: 'base' }))
+                }));
+        }
+
+        function getInstructionHistoryDateKey(inst) {
+            const resolvedDateTime = resolveInstructionDateTime(inst);
+            const parsedDate = parseDateTimeValue(resolvedDateTime);
+
+            if (!parsedDate) {
+                return normalizeText(resolvedDateTime || '');
+            }
+
+            return getLocalDateTimeInputValue(parsedDate);
+        }
+
+        function getInstructionHistoryKey(inst) {
+            return [
+                normalizeComparableName(inst?.meta?.instructionName || 'Зааварчилгаа'),
+                normalizeComparableName(inst?.meta?.instructionGiver || ''),
+                getInstructionHistoryDateKey(inst)
+            ].join('||');
+        }
+
+        function getInstructionRowKey(row) {
+            return normalizeComparableName(row?.name || '');
+        }
+
+        function buildInstructionRowMergeEntries(rows = []) {
+            const rowCounts = new Map();
+
+            return rows.map((row, index) => {
+                const baseKey = getInstructionRowKey(row) || `row-${index}`;
+                const occurrence = (rowCounts.get(baseKey) || 0) + 1;
+                rowCounts.set(baseKey, occurrence);
+
+                return {
+                    key: `${baseKey}::${occurrence}`,
+                    row
+                };
+            });
+        }
+
+        function pickPreferredValue(primaryValue, fallbackValue) {
+            const primaryText = String(primaryValue || '').trim();
+            if (primaryText) {
+                return primaryValue;
+            }
+
+            return fallbackValue || '';
+        }
+
+        function mergeInstructionRows(primaryRows = [], fallbackRows = []) {
+            const rowsByKey = new Map();
+
+            buildInstructionRowMergeEntries(fallbackRows).forEach(({ key, row }) => {
+                rowsByKey.set(key, { ...row });
+            });
+
+            buildInstructionRowMergeEntries(primaryRows).forEach(({ key, row }) => {
+                const existingRow = rowsByKey.get(key);
+
+                if (!existingRow) {
+                    rowsByKey.set(key, { ...row });
+                    return;
+                }
+
+                const primaryVerifiedAt = String(row?.verifiedAt || '').trim();
+                const primaryVerified = Boolean(row?.verified || primaryVerifiedAt);
+
+                rowsByKey.set(key, {
+                    ...existingRow,
+                    ...row,
+                    name: pickPreferredValue(row?.name, existingRow?.name),
+                    health: pickPreferredValue(row?.health, existingRow?.health),
+                    ppe: pickPreferredValue(row?.ppe, existingRow?.ppe),
+                    clothes: pickPreferredValue(row?.clothes, existingRow?.clothes),
+                    note: pickPreferredValue(row?.note, existingRow?.note),
+                    verifiedAt: primaryVerifiedAt,
+                    verified: primaryVerified
+                });
+            });
+
+            return Array.from(rowsByKey.values())
+                .sort((left, right) => (left.name || '').localeCompare(right.name || '', 'mn', { sensitivity: 'base' }));
+        }
+
+        function mergeInstructionEntries(primaryInst, fallbackInst) {
+            if (!primaryInst) {
+                return fallbackInst;
+            }
+
+            if (!fallbackInst) {
+                return primaryInst;
+            }
+
+            return {
+                ...fallbackInst,
+                ...primaryInst,
+                createdAt: pickPreferredValue(primaryInst.createdAt, fallbackInst.createdAt),
+                meta: {
+                    ...(fallbackInst.meta || {}),
+                    ...(primaryInst.meta || {}),
+                    instructionName: pickPreferredValue(primaryInst?.meta?.instructionName, fallbackInst?.meta?.instructionName),
+                    instructionGiver: pickPreferredValue(primaryInst?.meta?.instructionGiver, fallbackInst?.meta?.instructionGiver),
+                    dateTime: pickPreferredValue(primaryInst?.meta?.dateTime, fallbackInst?.meta?.dateTime)
+                },
+                data: mergeInstructionRows(primaryInst.data || [], fallbackInst.data || [])
+            };
+        }
+
+        function getVisibleInstructionHistory() {
+            const mergedByKey = new Map();
+
+            storedInstructions.forEach((inst, index) => {
+                const key = getInstructionHistoryKey(inst) || `stored-${inst?.id || index}`;
+                mergedByKey.set(key, inst);
+            });
+
+            sheetDerivedInstructions.forEach((inst, index) => {
+                const key = getInstructionHistoryKey(inst) || `sheet-${inst?.id || index}`;
+                mergedByKey.set(key, inst);
+            });
+
+            return Array.from(mergedByKey.values()).sort((left, right) => {
+                const leftTime = parseDateTimeValue(resolveInstructionDateTime(left))?.getTime() || 0;
+                const rightTime = parseDateTimeValue(resolveInstructionDateTime(right))?.getTime() || 0;
+                return rightTime - leftTime;
+            });
+        }
+
+        function persistVisibleInstructionHistory() {
+            saveToMemory(false);
+        }
+
+        function renderSheetGallery(records) {
+            if (!sheetGalleryContainer) {
+                return;
+            }
+
+            if (!records.length) {
+                sheetGalleryContainer.innerHTML = '<div class="sheet-empty">Google Sheets дээр хараахан мөр бүртгэгдээгүй байна.</div>';
+                if (sheetGalleryMeta) {
+                    sheetGalleryMeta.textContent = 'Харагдах бүртгэл олдсонгүй';
+                }
+                return;
+            }
+
+            const groups = groupSheetRecordsByDay(records);
+
+            if (sheetGalleryMeta) {
+                sheetGalleryMeta.textContent = `${records.length} мөр • ${groups.length} өдрийн бүлэглэл`;
+            }
+
+            sheetGalleryContainer.innerHTML = groups.map(({ dayKey, items }) => {
+                const cardsHtml = items.map((row) => {
+                    const personName = getSheetRecordValue(row, ['Ажилтны нэр']) || 'Нэргүй';
+                    const instructionName = getSheetRecordValue(row, ['Зааварчилгааны нэр']) || 'Зааварчилгааны нэргүй';
+                    const instructionGiver = getSheetRecordValue(row, ['Зааварчилгаа өгсөн']) || 'Тодорхойгүй';
+                    const note = getSheetRecordValue(row, ['Тайлбар']) || 'Тайлбар оруулаагүй';
+                    const status = getSheetRecordValue(row, ['Танилцсан']) || '';
+                    const instructionDate = getSheetRecordValue(row, ['Зааварчилгааны огноо']);
+                    const registeredDate = getSheetRecordValue(row, ['Бүртгэсэн огноо']);
+                    const displayTime = formatSheetTimeLabel(instructionDate || registeredDate);
+
+                    return `
+                        <article class="sheet-photo-card">
+                            <div class="sheet-photo-top">
+                                <div class="sheet-photo-time">🕒 ${escapeHtml(displayTime)}</div>
+                                <div class="sheet-photo-name">${escapeHtml(personName)}</div>
+                            </div>
+                            <div class="sheet-photo-body">
+                                <div class="sheet-photo-title">${escapeHtml(instructionName)}</div>
+                                <div class="sheet-photo-pills">
+                                    <span class="sheet-pill ${status ? 'success' : 'pending'}">${escapeHtml(status || 'Хүлээгдэж буй')}</span>
+                                    <span class="sheet-pill info">👷 ${escapeHtml(getSheetRecordValue(row, ['Эрүүл мэнд']) || 'Мэдээлэлгүй')}</span>
+                                </div>
+                                <div class="sheet-photo-meta">
+                                    <div class="sheet-photo-row">
+                                        <div class="sheet-photo-label">Өгсөн хүн</div>
+                                        <div class="sheet-photo-value">${escapeHtml(instructionGiver)}</div>
+                                    </div>
+                                    <div class="sheet-photo-row">
+                                        <div class="sheet-photo-label">Хэрэгсэл</div>
+                                        <div class="sheet-photo-value">${escapeHtml(getSheetRecordValue(row, ['Хамгаалах хэрэгсэл']) || 'Мэдээлэлгүй')}</div>
+                                    </div>
+                                    <div class="sheet-photo-row">
+                                        <div class="sheet-photo-label">Хувцас</div>
+                                        <div class="sheet-photo-value">${escapeHtml(getSheetRecordValue(row, ['Ажлын хувцас']) || 'Мэдээлэлгүй')}</div>
+                                    </div>
+                                    <div class="sheet-photo-row">
+                                        <div class="sheet-photo-label">Тайлбар</div>
+                                        <div class="sheet-photo-value">${escapeHtml(note)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+
+                return `
+                    <section class="sheet-day-group">
+                        <div class="sheet-day-header">
+                            <div class="sheet-day-title">${escapeHtml(formatSheetDayLabel(dayKey))}</div>
+                            <div class="sheet-day-count">${items.length} мөр</div>
+                        </div>
+                        <div class="sheet-photo-grid">${cardsHtml}</div>
+                    </section>
+                `;
+            }).join('');
+        }
+
+        async function requestSheetRecordsData(limit = 200) {
+            const params = new URLSearchParams({
+                id: GOOGLE_SHEETS_READ_SHEET,
+                limit: String(limit),
+                t: String(Date.now())
+            });
+
+            const response = await fetch(`${scriptURL}?${params.toString()}`, {
+                method: 'GET',
+                cache: 'no-cache'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            const parsed = tryParseJson(responseText);
+
+            if (!parsed) {
+                throw new Error('pd-1 шитээс JSON хариу уншиж чадсангүй.');
+            }
+
+            return normalizeSheetResponse(parsed);
+        }
+
+        function normalizeSheetResponse(rawResult) {
+            if (Array.isArray(rawResult)) {
+                return {
+                    ok: true,
+                    records: rawResult,
+                    total: rawResult.length
+                };
+            }
+
+            if (rawResult && typeof rawResult === 'object') {
+                if (Array.isArray(rawResult.records)) {
+                    return Object.assign({ ok: true, total: rawResult.records.length }, rawResult);
+                }
+
+                if (rawResult.ok === true) {
+                    return Object.assign({ records: [], total: 0 }, rawResult);
+                }
+
+                if (rawResult.ok === false) {
+                    return rawResult;
+                }
+            }
+
+            return {
+                ok: false,
+                message: 'Google Sheets-ээс танигдахгүй форматтай хариу ирлээ. Apps Script deploy-оо шинэчилнэ үү.',
+                records: []
+            };
+        }
+
+        async function getDataFromSheet(options = {}) {
+            return fetchSheetRecords(options);
+        }
+
+        async function fetchSheetRecords(options = {}) {
+            const { renderGallery = false } = options;
+
+            if (renderGallery && sheetGalleryStatus) {
+                sheetGalleryStatus.textContent = 'Google Sheets-с мэдээлэл татаж байна...';
+            }
+
+            if (renderGallery && sheetGalleryContainer) {
+                sheetGalleryContainer.innerHTML = '<div class="sheet-gallery-loading">Өдөр өдрөөр ангилсан мэдээлэл ачааллаж байна...</div>';
+            }
+
+            if (refreshSheetBtn) {
+                refreshSheetBtn.disabled = true;
+            }
+
+            if (refreshSheetGalleryBtn) {
+                refreshSheetGalleryBtn.disabled = true;
+            }
+
+            try {
+                const result = await requestSheetRecordsData(200);
+                if (!result.ok) {
+                    throw new Error(result.message || 'Google Sheets-с мэдээлэл уншиж чадсангүй.');
+                }
+
+                sheetRecordsCache = (result.records || [])
+                    .map(normalizeSheetRecord)
+                    .filter(isMeaningfulSheetRecord)
+                    .sort((left, right) => getSheetRecordSortTime(right) - getSheetRecordSortTime(left));
+                sheetDerivedInstructions = buildInstructionHistoryFromSheetRecords(sheetRecordsCache);
+                persistVisibleInstructionHistory();
+                renderSheetRecords(sheetRecordsCache);
+                renderSavedInstructions();
+
+                if (sheetRecordsMeta) {
+                    sheetRecordsMeta.textContent = `Нийт ${sheetRecordsCache.length} мөр татагдлаа`;
+                }
+
+                if (renderGallery || (sheetGalleryModal && sheetGalleryModal.classList.contains('show'))) {
+                    renderSheetGallery(sheetRecordsCache);
+                }
+
+                if (sheetGalleryStatus) {
+                    sheetGalleryStatus.textContent = `Сүүлд шинэчилсэн: ${formatDateTimeMong(new Date().toISOString())}`;
+                }
+
+                if (sheetRecordsStatus) {
+                    sheetRecordsStatus.textContent = `Сүүлд шинэчилсэн: ${formatDateTimeMong(new Date().toISOString())}`;
+                }
+            } catch (error) {
+                console.error('Fetch sheet records error:', error);
+                sheetDerivedInstructions = [];
+                renderSavedInstructions();
+
+                if (renderGallery && sheetGalleryContainer) {
+                    sheetGalleryContainer.innerHTML = '<div class="sheet-empty">Google Sheets-с мэдээлэл татах үед алдаа гарлаа.</div>';
+                }
+
+                if (sheetGalleryStatus) {
+                    sheetGalleryStatus.textContent = 'Apps Script deploy болон нээлтийн эрхийг шалгана уу.';
+                }
+
+                if (sheetRecordsContainer) {
+                    sheetRecordsContainer.innerHTML = '<div class="sheet-empty">Google Sheets-с мэдээлэл татах үед алдаа гарлаа.</div>';
+                }
+
+                if (sheetRecordsStatus) {
+                    sheetRecordsStatus.textContent = 'Apps Script deploy болон нээлтийн эрхийг шалгана уу.';
+                }
+
+                if (sheetRecordsMeta) {
+                    sheetRecordsMeta.textContent = 'Sheets холболт амжилтгүй байна';
+                }
+            } finally {
+                if (refreshSheetBtn) {
+                    refreshSheetBtn.disabled = false;
+                }
+
+                if (refreshSheetGalleryBtn) {
+                    refreshSheetGalleryBtn.disabled = false;
+                }
+            }
+        }
+
+        async function openSheetGalleryModal(forceRefresh = true) {
+            if (!sheetGalleryModal) {
+                window.open(GOOGLE_SHEET_URL, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            sheetGalleryModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            if (!forceRefresh && sheetRecordsCache.length) {
+                renderSheetGallery(sheetRecordsCache);
+                if (sheetGalleryStatus) {
+                    sheetGalleryStatus.textContent = 'Санах ойд байгаа сүүлийн мэдээллийг үзүүлж байна.';
+                }
+                return;
+            }
+
+            await fetchSheetRecords({ renderGallery: true });
+        }
+
+        function closeSheetGalleryModal() {
+            if (!sheetGalleryModal) {
+                return;
+            }
+
+            sheetGalleryModal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        async function postPayloadToSheet(payload) {
+            const formBody = buildSheetFormBody(payload);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), SHEETS_SYNC_TIMEOUT_MS);
+
+            try {
+                const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+                    method: 'POST',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: formBody.toString(),
+                    keepalive: true,
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const responseText = await response.text();
+                const result = tryParseJson(responseText);
+
+                if (!result || result.ok !== true) {
+                    const appsScriptError = extractAppsScriptHtmlError(responseText);
+                    throw new Error(
+                        appsScriptError
+                            || result?.message
+                            || 'Google Sheets хадгалалт амжилтгүй боллоо. Apps Script Web App deploy-оо шалгана уу.'
+                    );
+                }
+
+                return result;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        function tryParseJson(text) {
+            if (!text) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function extractAppsScriptHtmlError(text) {
+            if (!text || typeof text !== 'string') {
+                return '';
+            }
+
+            const syntaxErrorMatch = text.match(/SyntaxError:[^<\n]+/i);
+            if (syntaxErrorMatch) {
+                return `Apps Script deploy хуучин эсвэл алдаатай байна: ${decodeHtmlEntities(syntaxErrorMatch[0])}`;
+            }
+
+            if (/<html/i.test(text)) {
+                return 'Apps Script JSON биш HTML алдаа буцаалаа. Publish > Deploy as web app-аа шинэчилнэ үү.';
+            }
+
+            return '';
+        }
+
+        function decodeHtmlEntities(text) {
+            return String(text || '')
+                .replace(/&#39;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&');
+        }
+
+        function buildSheetFormBody(payload) {
+            const params = new URLSearchParams();
+
+            Object.entries(payload).forEach(([key, value]) => {
+                params.append(key, value == null ? '' : String(value));
+            });
+
+            params.append('payload', JSON.stringify(payload));
+            params.append('submittedAt', new Date().toISOString());
+
+            return params;
+        }
+
+        function submitSheetViaHiddenForm(payload) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const iframeName = `sheet-target-${Date.now()}`;
+                    const iframe = document.createElement('iframe');
+                    iframe.name = iframeName;
+                    iframe.style.display = 'none';
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = GOOGLE_SHEETS_WEB_APP_URL;
+                    form.target = iframeName;
+                    form.style.display = 'none';
+
+                    // submittedAt-г payload-д нэмж хамтад нь илгээнэ
+                    const fullPayload = Object.assign({}, payload, {
+                        submittedAt: new Date().toISOString()
+                    });
+
+                    Object.entries(fullPayload).forEach(([key, value]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value == null ? '' : String(value);
+                        form.appendChild(input);
+                    });
+
+                    const payloadInput = document.createElement('input');
+                    payloadInput.type = 'hidden';
+                    payloadInput.name = 'payload';
+                    payloadInput.value = JSON.stringify(fullPayload);
+                    form.appendChild(payloadInput);
+
+                    document.body.appendChild(iframe);
+                    document.body.appendChild(form);
+
+                    const cleanup = () => {
+                        form.remove();
+                        iframe.remove();
+                    };
+
+                    const timerId = setTimeout(() => {
+                        cleanup();
+                        resolve({ ok: true, queued: true });
+                    }, 2500);
+
+                    iframe.addEventListener('load', () => {
+                        clearTimeout(timerId);
+                        cleanup();
+                        resolve({ ok: true, queued: true });
+                    }, { once: true });
+
+                    form.submit();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        function sendSheetGetFallback(payload) {
+            return new Promise((resolve, reject) => {
+                const fallbackParams = new URLSearchParams({
+                    action: payload.action || 'qr_verify',
+                    personName: payload.personName || '',
+                    verifiedAt: payload.verifiedAt || '',
+                    instructionName: payload.instructionName || '',
+                    instructionGiver: payload.instructionGiver || '',
+                    instructionDateTime: payload.instructionDateTime || '',
+                    health: payload.health || '',
+                    ppe: payload.ppe || '',
+                    clothes: payload.clothes || '',
+                    note: payload.note || '',
+                    t: String(Date.now())
+                });
+
+                const beaconImage = new Image();
+                beaconImage.onload = () => resolve(true);
+                beaconImage.onerror = () => reject(new Error('GET fallback request failed'));
+                beaconImage.src = `${GOOGLE_SHEETS_WEB_APP_URL}?${fallbackParams.toString()}`;
+            });
+        }
+
+        async function sendPayloadToSheet(payload, successMessage) {
+            if (!GOOGLE_SHEETS_WEB_APP_URL) {
+                return {
+                    ok: false,
+                    message: 'Google Sheets Web App URL тохируулагдаагүй байна.'
+                };
+            }
+
+            try {
+                const result = await postPayloadToSheet(payload);
+                return {
+                    ok: true,
+                    message: result.message || successMessage
+                };
+            } catch (error) {
+                console.error('Sheets sync error:', error);
+                const formBody = buildSheetFormBody(payload);
+
+                if (navigator.sendBeacon) {
+                    try {
+                        const queued = navigator.sendBeacon(
+                            GOOGLE_SHEETS_WEB_APP_URL,
+                            new Blob([formBody.toString()], { type: 'application/x-www-form-urlencoded;charset=UTF-8' })
+                        );
+
+                        if (queued) {
+                            return {
+                                ok: true,
+                                message: 'Google Sheets рүү илгээх хүсэлт дараалалд орлоо.'
+                            };
+                        }
+                    } catch (beaconError) {
+                        console.error('Sheets beacon error:', beaconError);
+                    }
+                }
+
+                try {
+                    const fallbackResult = await submitSheetViaHiddenForm(payload);
+                    if (fallbackResult?.ok) {
+                        return {
+                            ok: true,
+                            message: 'Google Sheets рүү нөөц сувгаар хүсэлт илгээгдлээ. Sheet дээр шалгана уу.'
+                        };
+                    }
+                } catch (formError) {
+                    console.error('Sheets form fallback error:', formError);
+                }
+
+                try {
+                    await sendSheetGetFallback(payload);
+                    return {
+                        ok: true,
+                        message: 'Google Sheets рүү нөөц GET сувгаар мэдээлэл илгээгдлээ.'
+                    };
+                } catch (fallbackError) {
+                    console.error('Sheets GET fallback error:', fallbackError);
+                }
+
+                return {
+                    ok: false,
+                    message: error?.name === 'AbortError'
+                        ? 'Google Sheets рүү илгээх хугацаа хэтэрлээ. Интернэт холболт болон Apps Script URL-г шалгана уу.'
+                        : `Google Sheets рүү илгээх үед алдаа гарлаа: ${error?.message || 'тодорхойгүй алдаа'}`
+                };
+            }
+        }
+
+        async function sendDataToSheet(qrResult, person) {
+            const payload = buildSheetPayload(person, {
+                action: 'qr_verify',
+                verifiedAt: person?.verifiedAt || new Date().toISOString()
+            });
+
+            return sendPayloadToSheet(payload, 'Google Sheets рүү баталгаажуулалтын мэдээлэл илгээгдлээ.');
+        }
+
+        async function syncInstructionRowsToSheet(rows, metaSnapshot) {
+            const failures = [];
+            let syncedCount = 0;
+
+            for (const person of rows) {
+                const payload = buildSheetPayload(person, {
+                    action: 'instruction_save',
+                    verifiedAt: person?.verifiedAt || ''
+                });
+
+                payload.instructionName = normalizeText(metaSnapshot?.instructionName);
+                payload.instructionGiver = normalizeText(metaSnapshot?.instructionGiver);
+                payload.instructionDateTime = metaSnapshot?.dateTime || '';
+
+                const result = await sendPayloadToSheet(payload, 'Google Sheets рүү зааварчилгааны мөр хадгалагдлаа.');
+                if (result.ok) {
+                    syncedCount += 1;
+                } else {
+                    failures.push(`${person?.name || 'Нэргүй мөр'}: ${result.message}`);
+                }
+            }
+
+            return {
+                ok: failures.length === 0,
+                syncedCount,
+                total: rows.length,
+                message: failures.length === 0
+                    ? `Google Sheets рүү ${syncedCount} мөр амжилттай илгээгдлээ.`
+                    : `Зарим мөр илгээгдсэнгүй. ${failures.join(' | ')}`
+            };
+        }
+
+        function ensurePeopleOptionsValid() {
+            peopleOptions = peopleOptions
+                .map((name) => normalizeText(name))
+                .filter(Boolean);
+
+            if (!peopleOptions.length) {
+                peopleOptions = [...DEFAULT_PEOPLE];
+            }
+
+            peopleOptions = [...new Set(peopleOptions)].sort((a, b) =>
+                a.localeCompare(b, 'mn', { sensitivity: 'base' })
+            );
+        }
+
+        function getNameOptionsHtml(selectedName) {
+            const selected = normalizeText(selectedName);
+            const values = [...peopleOptions];
+
+            if (selected && !values.includes(selected)) {
+                values.push(selected);
+            }
+
+            const peopleHtml = values
+                .sort((a, b) => a.localeCompare(b, 'mn', { sensitivity: 'base' }))
+                .map((name) => `<option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>`)
+                .join('');
+
+            const actionHtml = `
+                <option disabled>────────</option>
+                <option value="${NAME_ACTION_ADD_PERSON}">👤 Хүний нэр нэмэх</option>
+                <option value="${NAME_ACTION_ADD_ROW}">➕ Нэмэх (дараагийн мөр)</option>
+                <option value="${NAME_ACTION_EDIT}">✏️ Нэр засах</option>
+                <option value="${NAME_ACTION_DELETE}">🗑️ Нэр устгах</option>
+            `;
+
+            return peopleHtml + actionHtml;
+        }
+
+        function getSortedPeopleOptions() {
+            return [...peopleOptions].sort((a, b) => a.localeCompare(b, 'mn', { sensitivity: 'base' }));
+        }
+
+        function getNextPersonName(currentName) {
+            const sorted = getSortedPeopleOptions();
+            if (!sorted.length) return '';
+            const idx = sorted.indexOf(currentName);
+            if (idx < 0) return sorted[0];
+            return sorted[(idx + 1) % sorted.length];
+        }
+
+        function addRowWithName(name) {
+            data.push({
+                name,
+                health: 'Тийм',
+                ppe: 'Тийм',
+                clothes: 'Тийм',
+                note: '',
+                verified: false,
+                verifiedAt: ''
+            });
+        }
+
+        function addNewPersonWithRow() {
+            const newName = normalizeText(prompt('Шинэ хүний нэр оруулна уу:'));
+            if (!newName) {
+                renderTable();
+                return;
+            }
+
+            if (peopleOptions.includes(newName)) {
+                alert('Ийм нэр жагсаалтад аль хэдийн байна.');
+                renderTable();
+                return;
+            }
+
+            peopleOptions.push(newName);
+            ensurePeopleOptionsValid();
+            addRowWithName(newName);
+            saveToMemory();
+            renderTable();
+        }
+
+        function syncSelectionState() {
+            selectedRows = new Set([...selectedRows].filter((index) => index >= 0 && index < data.length));
+            const selectedCount = selectedRows.size;
+            deleteSelectedBtn.disabled = selectedCount === 0;
+            deleteSelectedBtn.textContent = selectedCount > 0
+                ? `🗑️ Сонгосон мөр устгах (${selectedCount})`
+                : '🗑️ Сонгосон мөр устгах';
+
+            if (data.length === 0) {
+                selectAllRowsCheckbox.checked = false;
+                selectAllRowsCheckbox.indeterminate = false;
+                return;
+            }
+
+            selectAllRowsCheckbox.checked = selectedCount === data.length;
+            selectAllRowsCheckbox.indeterminate = selectedCount > 0 && selectedCount < data.length;
+        }
+
+        function toggleRowSelection(index, checked) {
+            if (checked) {
+                selectedRows.add(index);
+            } else {
+                selectedRows.delete(index);
+            }
+            renderTable();
+        }
+
+        function toggleAllRows(checked) {
+            selectedRows = checked ? new Set(data.map((_, index) => index)) : new Set();
+            renderTable();
+        }
+
+        function removeSelectedRows() {
+            if (!selectedRows.size) {
+                alert('Устгах мөрөө сонгоно уу.');
+                return;
+            }
+
+            if (selectedRows.size === data.length) {
+                alert('Дор хаяж нэг мөр үлдэх ёстой.');
+                return;
+            }
+
+            if (!confirm(`${selectedRows.size} мөрийг устгах уу?`)) {
+                return;
+            }
+
+            data = data.filter((_, index) => !selectedRows.has(index));
+            selectedRows.clear();
+            saveToMemory();
+            renderTable();
+        }
+
+        function handleNameAction(index, action) {
+            const row = data[index];
+            if (!row) return;
+
+            if (action === NAME_ACTION_ADD_PERSON) {
+                addNewPersonWithRow();
+                return;
+            }
+
+            if (action === NAME_ACTION_ADD_ROW) {
+                const nextName = getNextPersonName(row.name);
+                addRowWithName(nextName || peopleOptions[0]);
+                saveToMemory();
+                renderTable();
+                return;
+            }
+
+            if (action === NAME_ACTION_EDIT) {
+                const currentName = row.name;
+                const updated = normalizeText(prompt('Шинэ нэр оруулна уу:', currentName));
+                if (!updated || updated === currentName) {
+                    renderTable();
+                    return;
+                }
+                if (peopleOptions.includes(updated)) {
+                    alert('Ийм нэртэй бичлэг аль хэдийн байна.');
+                    renderTable();
+                    return;
+                }
+
+                const idx = peopleOptions.indexOf(currentName);
+                if (idx >= 0) {
+                    peopleOptions[idx] = updated;
+                } else {
+                    peopleOptions.push(updated);
+                }
+                replaceNameInCurrentData(currentName, updated);
+                ensurePeopleOptionsValid();
+                saveToMemory();
+                renderTable();
+                return;
+            }
+
+            if (action === NAME_ACTION_DELETE) {
+                const currentName = row.name;
+                if (peopleOptions.length <= 1) {
+                    alert('Нэрийн санд дор хаяж нэг хүн заавал үлдэх ёстой.');
+                    renderTable();
+                    return;
+                }
+                if (!confirm(`"${currentName}" нэрийг жагсаалтаас устгах уу?`)) {
+                    renderTable();
+                    return;
+                }
+
+                peopleOptions = peopleOptions.filter((name) => name !== currentName);
+                ensurePeopleOptionsValid();
+                const fallbackName = getNextPersonName(currentName) || peopleOptions[0];
+                replaceNameInCurrentData(currentName, fallbackName);
+                saveToMemory();
+                renderTable();
+            }
+        }
+
+        function replaceNameInCurrentData(oldName, newName) {
+            data.forEach((row) => {
+                if (row.name === oldName) {
+                    row.name = newName;
+                    row.verified = false;
+                    row.verifiedAt = '';
+                }
+            });
+        }
+
+        // QR Code functions
+        function openQrModal(index) {
+            currentQrIndex = index;
+            const person = data[currentQrIndex];
+            qrScanInProgress = false;
+            if (qrCloseTimer) {
+                clearTimeout(qrCloseTimer);
+                qrCloseTimer = null;
+            }
+            
+            document.getElementById('qrPersonName').textContent = person.name;
+            document.getElementById('qrModal').classList.add('show');
+            document.getElementById('scanResult').innerHTML = '';
+            
+            // Шууд камер идэвхжүүлэх
+            setTimeout(() => {
+                startQrScanner();
+            }, 300);
+        }
+
+        async function closeQrModal() {
+            if (qrCloseTimer) {
+                clearTimeout(qrCloseTimer);
+                qrCloseTimer = null;
+            }
+            await stopQrScanner();
+            document.getElementById('qrModal').classList.remove('show');
+            currentQrIndex = null;
+            qrScanInProgress = false;
+        }
+
+        async function stopQrScanner() {
+            if (qrScannerStopPromise) {
+                return qrScannerStopPromise;
+            }
+
+            if (!html5QrCode) {
+                qrScannerStarting = false;
+                return;
+            }
+
+            const scanner = html5QrCode;
+            html5QrCode = null;
+            qrScannerStarting = false;
+
+            qrScannerStopPromise = (async () => {
+                try {
+                    if (scanner.isScanning) {
+                        await scanner.stop();
+                    }
+                } catch (err) {
+                    console.log(err);
+                }
+
+                try {
+                    await scanner.clear();
+                } catch (err) {
+                    console.log(err);
+                } finally {
+                    qrScannerStopPromise = null;
+                }
+            })();
+
+            return qrScannerStopPromise;
+        }
+
+        async function startQrScanner() {
+            if (qrScannerStarting || qrScanInProgress) {
+                return;
+            }
+
+            if (!document.getElementById('qrModal').classList.contains('show') || currentQrIndex === null) {
+                return;
+            }
+
+            if (qrScannerStopPromise) {
+                await qrScannerStopPromise;
+            }
+
+            if (html5QrCode) {
+                await stopQrScanner();
+            }
+
+            qrScannerStarting = true;
+            document.getElementById('scanResult').innerHTML = '';
+            html5QrCode = new Html5Qrcode("qrReader");
+
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 280, height: 280 },
+                aspectRatio: 1.0
+            };
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    onScanSuccess,
+                    onScanError
+                );
+            } catch (err) {
+                console.error("Camera start error:", err);
+                document.getElementById('scanResult').innerHTML = 
+                    '<div class="scan-error">❌ Камер ашиглах боломжгүй байна. Зөвшөөрөл олгосон эсэхээ шалгана уу.</div>';
+                await stopQrScanner();
+            } finally {
+                qrScannerStarting = false;
+            }
+        }
+
+        function extractQrName(decodedText) {
+            try {
+                const qrData = JSON.parse(decodedText);
+                return normalizeText(qrData.name || qrData.fullName || qrData.employeeName || '');
+            } catch (e) {
+                return normalizeText(decodedText);
+            }
+        }
+
+        async function onScanSuccess(decodedText) {
+            if (qrScanInProgress || currentQrIndex === null) {
+                return;
+            }
+
+            const person = data[currentQrIndex];
+            if (!person) {
+                return;
+            }
+
+            const scannedName = extractQrName(decodedText);
+            const expectedName = normalizeText(person.name);
+
+            if (!scannedName) {
+                document.getElementById('scanResult').innerHTML =
+                    '<div class="scan-error">❌ QR кодын мэдээлэл хоосон байна.</div>';
+                return;
+            }
+
+            if (!isQrNameMatch(scannedName, expectedName)) {
+                document.getElementById('scanResult').innerHTML = 
+                    `<div class="scan-error">❌ Буруу QR код. Хүлээгдэж байгаа: <strong>${person.name}</strong><br>Уншигдсан утга: <strong>${escapeHtml(scannedName)}</strong></div>`;
+                return;
+            }
+
+            qrScanInProgress = true;
+
+            try {
+                document.getElementById('scanResult').innerHTML = 
+                    `<div class="scan-result">✅ QR зөв уншигдлаа. Баталгаажуулж байна: <strong>${person.name}</strong></div>`;
+
+                await stopQrScanner();
+
+                person.verified = true;
+                person.verifiedAt = new Date().toISOString();
+                const sheetResult = await sendDataToSheet(decodedText, person);
+
+                if (sheetResult.ok) {
+                    person.sheetSyncedAt = new Date().toISOString();
+                    person.sheetSyncError = '';
+                } else {
+                    person.sheetSyncError = sheetResult.message;
+                }
+
+                saveToMemory();
+                renderTable();
+
+                document.getElementById('scanResult').innerHTML = 
+                    sheetResult.ok
+                        ? `<div class="scan-result">✅ Амжилттай баталгаажлаа: <strong>${person.name}</strong><br>📄 ${sheetResult.message}</div>`
+                        : `<div class="scan-error">⚠️ QR баталгаажлаа: <strong>${person.name}</strong><br>${sheetResult.message}</div>`;
+
+                if (sheetResult.ok) {
+                    fetchSheetRecords();
+                }
+
+                qrCloseTimer = setTimeout(() => {
+                    closeQrModal();
+                }, 1200);
+            } catch (error) {
+                console.error('QR verify error:', error);
+                document.getElementById('scanResult').innerHTML =
+                    '<div class="scan-error">❌ QR баталгаажуулалтын үед алдаа гарлаа. Дахин оролдоно уу.</div>';
+                qrScanInProgress = false;
+                if (!document.getElementById('qrModal').classList.contains('show')) {
+                    currentQrIndex = null;
+                }
+            }
+        }
+
+        function onScanError(errorMessage) {
+            // Ignore continuous scan errors
+        }
+
+        window.openQrModal = openQrModal;
+        window.closeQrModal = closeQrModal;
+        window.closeSheetGalleryModal = closeSheetGalleryModal;
+
+        function saveToMemory(showStatus = true) {
+            try {
+                const stored = { data, meta, storedInstructions, peopleOptions };
+                localStorage.setItem('aaInstructionsStore', JSON.stringify(stored));
+                if (showStatus) {
+                    showSaveStatus();
+                }
+            } catch (e) {
+                console.error('Save failed', e);
+            }
+        }
+
+        function loadFromMemory() {
+            try {
+                const raw = localStorage.getItem('aaInstructionsStore');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    let shouldRewriteStore = false;
+                    data = parsed.data || data;
+                    meta = parsed.meta || meta;
+                    storedInstructions = (parsed.storedInstructions || []).filter((inst) => !String(inst?.id || '').startsWith('sheet-'));
+                    peopleOptions = parsed.peopleOptions || peopleOptions;
+
+                    if (storedInstructions.length !== (parsed.storedInstructions || []).length) {
+                        shouldRewriteStore = true;
+                    }
+
+                    // Хуучин өгөгдөлд verifiedAt байхгүй байж болох тул нөхнө.
+                    data = data.map((row) => ({ verifiedAt: "", ...row }));
+                    storedInstructions = storedInstructions.map((inst) => {
+                        const normalizedRows = (inst.data || []).map((row) => ({ verifiedAt: "", ...row }));
+                        const createdAt = inst?.createdAt ? new Date(inst.createdAt) : null;
+                        const metaDateTime = String(inst?.meta?.dateTime || '').trim();
+                        let normalizedMetaDateTime = metaDateTime;
+
+                        if (createdAt && !isNaN(createdAt) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(metaDateTime)) {
+                            const createdAtUtcSlice = createdAt.toISOString().slice(0, 16);
+                            if (metaDateTime === createdAtUtcSlice) {
+                                const localCreatedAt = new Date(createdAt.getTime() - (createdAt.getTimezoneOffset() * 60000));
+                                normalizedMetaDateTime = localCreatedAt.toISOString().slice(0, 16);
+                                shouldRewriteStore = true;
+                            }
+                        }
+
+                        return {
+                            ...inst,
+                            meta: {
+                                ...(inst.meta || {}),
+                                dateTime: normalizedMetaDateTime
+                            },
+                            data: normalizedRows
+                        };
+                    });
+
+                    if (shouldRewriteStore) {
+                        localStorage.setItem('aaInstructionsStore', JSON.stringify({
+                            data,
+                            meta,
+                            storedInstructions,
+                            peopleOptions
+                        }));
+                    }
+                }
+            } catch (e) {
+                console.error('Load failed', e);
+            }
+        }
+
+        function showSaveStatus() {
+            saveStatus.classList.add('show');
+            setTimeout(() => {
+                saveStatus.classList.remove('show');
+            }, 2000);
+        }
+
+        loadFromMemory();
+
+        function getLocalDateTimeInputValue(value = new Date()) {
+            const d = value instanceof Date ? value : new Date(value);
+            if (isNaN(d)) {
+                return '';
+            }
+
+            const local = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+            return local.toISOString().slice(0, 16);
+        }
+
+        function parseDateTimeValue(value) {
+            if (!value) {
+                return null;
+            }
+
+            if (value instanceof Date) {
+                return isNaN(value) ? null : value;
+            }
+
+            const text = String(value).trim();
+            const localDateTimeMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+            if (localDateTimeMatch) {
+                const [, yyyy, mm, dd, HH, MM] = localDateTimeMatch;
+                return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(HH), Number(MM));
+            }
+
+            const parsed = new Date(text);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        function formatDateTimeMong(iso, options = {}) {
+            const d = parseDateTimeValue(iso);
+            if (!d) return '';
+
+            const { includeWeekday = false } = options;
+            const weekdays = [
+                'Ням гариг',
+                'Даваа гариг',
+                'Мягмар гариг',
+                'Лхагва гариг',
+                'Пүрэв гариг',
+                'Баасан гариг',
+                'Бямба гариг'
+            ];
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const HH = String(d.getHours()).padStart(2, '0');
+            const MM = String(d.getMinutes()).padStart(2, '0');
+            const weekdayLabel = includeWeekday ? ` (${weekdays[d.getDay()]})` : '';
+            return `${yyyy} оны ${mm} сарын ${dd} өдөр${weekdayLabel}, ${HH}:${MM}`;
+        }
+
+        function resolveInstructionDateTime(inst) {
+            const metaDateTime = inst?.meta?.dateTime || '';
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(metaDateTime) && inst?.createdAt) {
+                const createdAt = new Date(inst.createdAt);
+                if (!isNaN(createdAt) && metaDateTime === createdAt.toISOString().slice(0, 16)) {
+                    return inst.createdAt;
+                }
+            }
+
+            return metaDateTime || inst?.createdAt || '';
+        }
+
+        function normalizeSavedChoiceValue(value) {
+            const text = String(value || '').trim();
+            return text || 'Тийм';
+        }
+
+        function formatSavedCellValue(value) {
+            const text = String(value || '').trim();
+            const escapedText = escapeHtml(text);
+            return text === 'Үгүй'
+                ? `<span class="negative-value">${escapedText}</span>`
+                : escapedText;
+        }
+
+        function updateDailySummary() {
+            const total = data.length;
+            const verified = data.filter((row) => row.verified).length;
+            const pending = total - verified;
+
+            summaryTotal.textContent = String(total);
+            summaryVerified.textContent = String(verified);
+            summaryPending.textContent = String(pending);
+        }
+
+        function renderTable() {
+            tableBody.innerHTML = "";
+            verifiedAtHeader.style.display = 'none';
+            updateDailySummary();
+            syncSelectionState();
+
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                if (selectedRows.has(index)) {
+                    row.classList.add('selected-row');
+                }
+                const verifiedClass = item.verified ? 'verified' : '';
+                const verifiedIcon = item.verified ? '✅' : '📱';
+                const verifiedText = item.verified ? 'Зөвшөөрсөн' : 'QR уншуулах';
+                row.innerHTML = `
+                    <td class="row-select-cell"><input class="row-select" type="checkbox" ${selectedRows.has(index) ? 'checked' : ''} onchange="toggleRowSelection(${index}, this.checked)"></td>
+                    <td><strong>${index + 1}</strong></td>
+                    <td>
+                        <select onchange="updateField(${index}, 'name', this.value)">
+                            ${getNameOptionsHtml(item.name)}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="${item.health === 'Үгүй' ? 'negative-choice' : ''}" onchange="updateField(${index}, 'health', this.value)">
+                            <option value="Тийм" ${item.health === 'Тийм' ? 'selected' : ''}>Тийм</option>
+                            <option value="Үгүй" ${item.health === 'Үгүй' ? 'selected' : ''}>Үгүй</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="${item.ppe === 'Үгүй' ? 'negative-choice' : ''}" onchange="updateField(${index}, 'ppe', this.value)">
+                            <option value="Тийм" ${item.ppe === 'Тийм' ? 'selected' : ''}>Тийм</option>
+                            <option value="Үгүй" ${item.ppe === 'Үгүй' ? 'selected' : ''}>Үгүй</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="${item.clothes === 'Үгүй' ? 'negative-choice' : ''}" onchange="updateField(${index}, 'clothes', this.value)">
+                            <option value="Тийм" ${item.clothes === 'Тийм' ? 'selected' : ''}>Тийм</option>
+                            <option value="Үгүй" ${item.clothes === 'Үгүй' ? 'selected' : ''}>Үгүй</option>
+                        </select>
+                    </td>
+                    <td><input type="text" placeholder="Тайлбар..." value="${item.note}" onchange="updateField(${index}, 'note', this.value)"></td>
+                    <td>
+                        <button class="btn-qr ${verifiedClass}" onclick="openQrModal(${index})">
+                            ${verifiedIcon} ${verifiedText}
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    function updateField(index, field, value) {
+        if (field === 'name' && String(value).startsWith('__action:')) {
+            handleNameAction(index, value);
+            return;
+        }
+
+        data[index][field] = value;
+
+        if (field === 'name') {
+            data[index].verified = false;
+            data[index].verifiedAt = '';
+        }
+
+        saveToMemory();
+        renderTable();
+    }
+
+    window.updateField = updateField;
+    window.toggleRowSelection = toggleRowSelection;
+
+    function saveInstruction(rowsSnapshot = data, metaSnapshot = meta) {
+        const entry = {
+            id: Date.now(),
+            createdAt: new Date().toISOString(),
+            meta: { ...metaSnapshot },
+            data: JSON.parse(JSON.stringify(rowsSnapshot))
+        };
+        storedInstructions.unshift(entry);
+        saveToMemory();
+        meta = {
+            dateTime: getLocalDateTimeInputValue(),
+            instructionName: "",
+            instructionGiver: ""
+        };
+        selectedRows.clear();
+        data = [{ name: peopleOptions[0], health: "Тийм", ppe: "Тийм", clothes: "Тийм", note: "", verified: false, verifiedAt: "" }];
+        metaInstructionName.value = meta.instructionName;
+        metaInstructionGiver.value = meta.instructionGiver;
+        renderTable();
+        renderSavedInstructions();
+    }
+
+    function renderSavedInstructions() {
+        const container = document.getElementById('savedInstructionsContainer');
+        const visibleInstructions = getVisibleInstructionHistory();
+        container.innerHTML = '';
+        if (!visibleInstructions.length) {
+            container.innerHTML = '<div style="opacity:0.7;text-align:center;padding:20px;">Өмнөх зааварчилгаа байхгүй</div>';
+            return;
+        }
+
+        visibleInstructions.forEach((inst) => {
+            const card = document.createElement('div');
+            card.classList.add('saved-card');
+
+            const header = document.createElement('div');
+            header.classList.add('saved-header');
+
+            const title = document.createElement('div');
+            title.classList.add('saved-title');
+            const instructionName = escapeHtml(inst.meta.instructionName || 'Зааварчилгаа');
+            const instructionGiver = escapeHtml(inst.meta.instructionGiver || '');
+            title.innerHTML = `<strong>${instructionName}</strong>${instructionGiver ? ` — ${instructionGiver}` : ''}`;
+
+            const date = document.createElement('div');
+            date.classList.add('saved-date');
+            date.textContent = formatDateTimeMong(resolveInstructionDateTime(inst), { includeWeekday: true });
+
+            header.appendChild(title);
+            header.appendChild(date);
+            card.appendChild(header);
+
+            const dayTotal = (inst.data || []).length;
+            const dayVerified = (inst.data || []).filter((row) => row.verified).length;
+            const dayPending = dayTotal - dayVerified;
+
+            const stats = document.createElement('div');
+            stats.classList.add('saved-stats');
+            stats.innerHTML = `
+                <span class="chip total">Нийт: ${dayTotal}</span>
+                <span class="chip verified">QR уншуулсан: ${dayVerified}</span>
+                <span class="chip pending">QR уншуулаагүй: ${dayPending}</span>
+            `;
+            header.appendChild(stats);
+
+            const tbl = document.createElement('table');
+            tbl.style.width = '100%';
+            tbl.style.borderCollapse = 'collapse';
+            tbl.style.marginTop = '10px';
+            const thead = document.createElement('thead');
+            thead.innerHTML = `<tr style="background:#f8f9ff;"><th style="padding:10px;text-align:center;font-size:13px;">№</th><th style="padding:10px;text-align:left;font-size:13px;">Авсан хүний нэр</th><th style="padding:10px;text-align:center;font-size:13px;">Эрүүл мэнд</th><th style="padding:10px;text-align:center;font-size:13px;">Хамгаалах хэрэгсэл</th><th style="padding:10px;text-align:center;font-size:13px;">Ажлын хувцас</th><th style="padding:10px;text-align:left;font-size:13px;">Тайлбар</th><th style="padding:10px;text-align:center;font-size:13px;">Төлөв</th></tr>`;
+            const tbody = document.createElement('tbody');
+
+            inst.data.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #e9ecef';
+                tr.innerHTML = `
+                    <td style="padding:10px;text-align:center;font-size:13px;font-weight:700;">${idx + 1}</td>
+                    <td style="padding:10px;text-align:left;font-size:13px;">${escapeHtml(row.name || '')}</td>
+                    <td style="padding:10px;text-align:center;font-size:13px;">${formatSavedCellValue(normalizeSavedChoiceValue(row.health))}</td>
+                    <td style="padding:10px;text-align:center;font-size:13px;">${formatSavedCellValue(normalizeSavedChoiceValue(row.ppe))}</td>
+                    <td style="padding:10px;text-align:center;font-size:13px;">${formatSavedCellValue(normalizeSavedChoiceValue(row.clothes))}</td>
+                    <td style="padding:10px;text-align:left;font-size:13px;">${escapeHtml(row.note || '')}</td>
+                    <td style="padding:10px;text-align:center;font-size:13px;">${row.verified
+                        ? '<span class="status-pill verified">✅ Баталгаажсан</span>'
+                        : '<span class="status-pill pending">⏳ Хүлээгдэж буй</span>'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            tbl.appendChild(thead);
+            tbl.appendChild(tbody);
+            card.appendChild(tbl);
+
+            container.appendChild(card);
+        });
+    }
+
+    metaInstructionName.value = meta.instructionName;
+    metaInstructionGiver.value = meta.instructionGiver;
+    if (openSheetBrowserLink) {
+        openSheetBrowserLink.href = GOOGLE_SHEET_URL;
+    }
+
+    metaInstructionName.addEventListener('input', (e) => {
+        meta.instructionName = e.target.value;
+        saveToMemory();
+    });
+
+    metaInstructionGiver.addEventListener('input', (e) => {
+        meta.instructionGiver = e.target.value;
+        saveToMemory();
+    });
+
+    saveInstructionBtn.addEventListener('click', async () => {
+        if (!data.length) { 
+            alert('Зааварчилгаанд хүн байхгүй байна.'); 
+            return; 
+        }
+        if (!meta.instructionName) {
+            if (!confirm('Зааварчилгааны нэр хоосон байна. Хадгалах уу?')) return;
+        }
+        const rowsSnapshot = JSON.parse(JSON.stringify(data));
+        const metaSnapshot = {
+            ...meta,
+            dateTime: getLocalDateTimeInputValue()
+        };
+        const originalLabel = saveInstructionBtn.textContent;
+
+        saveInstructionBtn.disabled = true;
+        saveInstructionBtn.textContent = '⏳ Хадгалж байна...';
+
+        try {
+            const syncResult = await syncInstructionRowsToSheet(rowsSnapshot, metaSnapshot);
+            saveInstruction(rowsSnapshot, metaSnapshot);
+
+            if (syncResult.ok) {
+                fetchSheetRecords();
+            }
+
+            alert(syncResult.ok
+                ? `✅ Зааварчилгаа амжилттай хадгалагдлаа!\n📄 ${syncResult.message}`
+                : `⚠️ Зааварчилгаа дотоод санах ойд хадгалагдлаа.\n${syncResult.message}`);
+        } finally {
+            saveInstructionBtn.disabled = false;
+            saveInstructionBtn.textContent = originalLabel;
+        }
+    });
+
+    deleteSelectedBtn.addEventListener('click', removeSelectedRows);
+    if (refreshSheetBtn) {
+        refreshSheetBtn.addEventListener('click', fetchSheetRecords);
+    }
+    if (refreshSheetGalleryBtn) {
+        refreshSheetGalleryBtn.addEventListener('click', () => fetchSheetRecords({ renderGallery: true }));
+    }
+    if (sheetGalleryModal) {
+        sheetGalleryModal.addEventListener('click', (event) => {
+            if (event.target === sheetGalleryModal) {
+                closeSheetGalleryModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            if (sheetGalleryModal && sheetGalleryModal.classList.contains('show')) {
+                closeSheetGalleryModal();
+            }
+            if (document.getElementById('qrModal').classList.contains('show')) {
+                closeQrModal();
+            }
+        }
+    });
+    selectAllRowsCheckbox.addEventListener('change', (e) => {
+        toggleAllRows(e.target.checked);
+    });
+
+    ensurePeopleOptionsValid();
+    renderTable();
+    renderSavedInstructions();
+    fetchSheetRecords();
+</script>
+</body>
+</html>

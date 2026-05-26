@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сургалтын систем v5</title>
+    <style>
+        :root {
+            --primary: #5592a3;
+            --secondary: #67a5b5;
+            --dark: #3d6b77;
+            --light: #f1f5f9;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--light);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .menu-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--secondary);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .menu-btn.active { background: var(--dark); border-color: white; font-weight: bold; }
+
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .top-info-bar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 4px; }
+        .input-field { padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+
+        .content-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+
+        .video-section, .notes-section {
+            background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .video-box { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; overflow: hidden; }
+
+        .video-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
+
+        .tab-btn { padding: 10px; background: #e2e8f0; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        textarea { width: 100%; height: 100px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: none; box-sizing: border-box; }
+
+        .btn-save { background: #10b981; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+
+        .history-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 13px; }
+        th { background: #f8fafc; color: var(--dark); }
+        td.merged { vertical-align: middle; background: #fafafa; font-weight: bold; color: #2c3e50; }
+        .total-time-badge { display: block; color: #166534; font-size: 11px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h3 style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">СУРГАЛТЫН ЦЭС</h3>
+        <div id="menu-list"></div>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="top-info-bar">
+            <h3 id="current-course-title" style="margin:0; color: var(--dark); min-width: 250px;">Сургалт сонгоно уу</h3>
+            
+            <div class="input-group">
+                <label>Огноо:</label>
+                <input type="date" id="doc-date" class="input-field">
+            </div>
+
+            <div class="input-group">
+                <label>Багш:</label>
+                <select id="instructor" class="input-field">
+                    <option value="Б.Бат">Б.Бат</option>
+                    <option value="С.Саруул">С.Саруул</option>
+                    <option value="Д.Дорж">Д.Дорж</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Сургалтын цаг:</label>
+                <select id="duration" class="input-field">
+                    <option value="0.5">30 мин</option>
+                    <option value="1">1 цаг</option>
+                    <option value="1.5">1.5 цаг</option>
+                    <option value="2">2 цаг</option>
+                    <option value="4">4 цаг</option>
+                    <option value="8">8 цаг</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="content-row">
+            <div class="video-section">
+                <div class="video-box">
+                    <iframe id="main-video" src="" allowfullscreen width="100%" height="100%"></iframe>
+                </div>
+                <div class="video-tabs" id="vid-tabs"></div>
+            </div>
+
+            <div class="notes-section">
+                <label>Үзсэн хүний нэр:</label>
+                <input type="text" id="viewer-name" class="input-field" style="width:100%; margin-bottom:15px; box-sizing: border-box;">
+                
+                <label>Тэмдэглэл / Тайлбар (Өдрөөр нэгтгэгдэнэ):</label>
+                <textarea id="main-note" placeholder="Тухайн өдрийн сургалтын тэмдэглэл..."></textarea>
+                
+                <button class="btn-save" onclick="saveToHistory()">Мэдээллийг Хадгалах</button>
+            </div>
+        </div>
+
+        <div class="history-card">
+            <h4 style="margin-top:0">Сургалтын бүртгэлийн түүх</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Огноо</th>
+                            <th>Өдрийн нийт цаг</th>
+                            <th>Багш</th>
+                            <th>Сургалт / Бичлэг</th>
+                            <th>Үзсэн хүн</th>
+                            <th>Тэмдэглэл</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const courses = [
+        { id: 1, title: "Галын аюулаас урьдчилан сэргийлэх", v: ["1. Онол", "2. Дадлага", "3. Багаж", "4. Анхааруулга", "5. Дүгнэлт"] },
+        { id: 2, title: "Эрүүл мэнд ба Аюулгүй байдал", v: ["1. Хөдөлмөр", "2. Нөхцөл", "3. Хамгаалалт", "4. Хооллолт", "5. Дасгал"] },
+        { id: 3, title: "ЗХВ-ны тууз тайлах сургалт", v: ["1. Танилцуулга", "2. Техник", "3. Заавар", "4. Алдаа", "5. Шалгалт"] },
+        { id: 4, title: "Замын багаж хэрэгсэл засвар", v: ["1. Төрөл", "2. Оношилгоо", "3. Засварлах", "4. Тослох", "5. Хадгалах"] },
+        { id: 5, title: "Замын гэмтэл засах техник", v: ["1. Гэмтэл", "2. Багаж", "3. Ажиллагаа", "4. Аюулгүй байдал", "5. Дуусгах"] },
+        { id: 6, title: "Стресс, харилцаа хандлага", v: ["1. Ойлголт", "2. Шалтгаан", "3. Зохицуулах", "4. Харилцаа", "5. Дасгал"] },
+        { id: 7, title: "Шинэ бүтээл, ашигтай загвар", v: ["1. Санаа", "2. Төсөл", "3. Загвар", "4. Туршилт", "5. Нэвтрүүлэх"] },
+        { id: 8, title: "Учирч болох 100 эрсдэл", v: ["1. Дотор орчинд", "2. Гадна талбайд", "3. Дээрээс", "4. Доороос", "5. Бусад"] },
+        { id: 9, title: "Мэдлэг сорих асуулт, хариулт", v: ["3-р зэргийн замчин", "2. 4-р зэргийн замчин", "3. хууль, журам", "4. ХАБЭА", "5. СИРДПЕ"] },
+        { id: 10, title: "Хууль эрх зүйн сургалт", v: ["1. Үндсэн хууль", "2. Хөдөлмөрийн хууль", "3. Дүрэм", "4. Хариуцлага", "5. Зөвлөгөө"] }
+    ];
+
+    let currentCourse = courses[0];
+    let currentVideoName = "";
+
+    function init() {
+        const menuList = document.getElementById('menu-list');
+        courses.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'menu-btn';
+            btn.innerText = c.title;
+            btn.onclick = () => loadCourse(c.id);
+            btn.id = `m-${c.id}`;
+            menuList.appendChild(btn);
+        });
+        document.getElementById('doc-date').value = new Date().toISOString().split('T')[0];
+        loadCourse(1);
+        renderHistory();
+    }
+
+    function loadCourse(id) {
+        currentCourse = courses.find(c => c.id === id);
+        document.getElementById('current-course-title').innerText = currentCourse.title;
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`m-${id}`).classList.add('active');
+
+        const tabs = document.getElementById('vid-tabs');
+        tabs.innerHTML = '';
+        currentCourse.v.forEach((vName) => {
+            const btn = document.createElement('button');
+            btn.className = 'tab-btn';
+            btn.innerText = vName;
+            btn.onclick = () => {
+                currentVideoName = vName;
+                document.getElementById('main-video').src = `https://www.youtube.com/embed/dQw4w9WgXcQ`;
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            tabs.appendChild(btn);
+        });
+        tabs.firstChild.click();
+    }
+
+    function saveToHistory() {
+        const viewer = document.getElementById('viewer-name').value;
+        const selectedDate = document.getElementById('doc-date').value;
+        const note = document.getElementById('main-note').value;
+        
+        if(!viewer) return alert("Нэр оруулна уу!");
+
+        let history = JSON.parse(localStorage.getItem('training_v5')) || [];
+
+        // Нэг өдөр бол тэмдэглэлийг бүгдийг нь ижил болгож шинэчлэх
+        if(note) {
+            history.forEach(h => {
+                if(h.date === selectedDate) h.note = note;
+            });
+        }
+
+        const entry = {
+            date: selectedDate,
+            instructor: document.getElementById('instructor').value,
+            duration: parseFloat(document.getElementById('duration').value),
+            courseTitle: currentCourse.title,
+            videoName: currentVideoName,
+            viewer: viewer,
+            note: note || (history.find(h => h.date === selectedDate)?.note || ""),
+            id: Date.now()
+        };
+
+        history.push(entry);
+        localStorage.setItem('training_v5', JSON.stringify(history));
+        
+        document.getElementById('viewer-name').value = '';
+        renderHistory();
+    }
+
+    function renderHistory() {
+        let history = JSON.parse(localStorage.getItem('training_v5')) || [];
+        history.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+        const body = document.getElementById('history-body');
+        body.innerHTML = '';
+
+        // Нийлбэр цаг тооцоолох
+        const dailyTotals = history.reduce((acc, curr) => {
+            acc[curr.date] = (acc[curr.date] || 0) + curr.duration;
+            return acc;
+        }, {});
+
+        for (let i = 0; i < history.length; i++) {
+            const h = history[i];
+            let dateRowspan = 0;
+            
+            // Ижил огноотой хэдэн мөр байгааг тоолох
+            for (let j = i; j < history.length; j++) {
+                if (history[j].date === h.date) dateRowspan++;
+                else break;
+            }
+
+            const row = document.createElement('tr');
+            
+            if (i === 0 || history[i-1].date !== h.date) {
+                // Огноо нүд
+                const tdDate = document.createElement('td');
+                tdDate.className = 'merged';
+                tdDate.rowSpan = dateRowspan;
+                tdDate.innerText = h.date;
+                row.appendChild(tdDate);
+
+                // Нийт цаг нүд
+                const tdTotal = document.createElement('td');
+                tdTotal.className = 'merged';
+                tdTotal.rowSpan = dateRowspan;
+                tdTotal.innerHTML = `${dailyTotals[h.date]} цаг`;
+                row.appendChild(tdTotal);
+            }
+
+            row.innerHTML += `
+                <td>${h.instructor}</td>
+                <td style="text-align:left"><b>${h.courseTitle}</b><br><small>${h.videoName}</small></td>
+                <td>${h.viewer}</td>
+            `;
+
+            if (i === 0 || history[i-1].date !== h.date) {
+                // Тэмдэглэл нүд
+                const tdNote = document.createElement('td');
+                tdNote.className = 'merged';
+                tdNote.rowSpan = dateRowspan;
+                tdNote.style.textAlign = 'left';
+                tdNote.innerText = h.note || '-';
+                row.appendChild(tdNote);
+            }
+
+            body.appendChild(row);
+            if (dateRowspan > 1) {
+                // Нэгтгэсэн мөрүүдийг алгасах логик шаардлагагүй, 
+                // учир нь бид зөвхөн огноо солигдох үед л rowspan нүднүүдийг үүсгэж байна.
+            }
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

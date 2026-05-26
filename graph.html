@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диспетчерийн Нарийвчилсан Хяналт</title>
+    <style>
+        :root { 
+            --danger: #ff4757; 
+            --success: #2ed573; 
+            --bg: #1e272e; 
+            --panel: #2f3542; 
+            --blue: #3498db;
+            --warning: #f39c12;
+            --purple: #9b59b6;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background: var(--bg); 
+            color: #dcdde1; 
+            padding: 12px; 
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .container { width: min(calc(100vw - 24px), 1400px); max-width: 100%; margin: auto; }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .grid { 
+            display: grid; 
+            grid-template-columns: 380px 1fr; 
+            gap: 20px; 
+        }
+        
+        .card { 
+            background: var(--panel); 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); 
+        }
+        
+        input, select, button { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border-radius: 6px; 
+            border: 1px solid #485460; 
+            font-size: 14px; 
+            background: #f1f2f6;
+            box-sizing: border-box;
+        }
+        
+        input:focus, select:focus {
+            outline: 2px solid var(--blue);
+        }
+        
+        button { 
+            background: var(--blue); 
+            color: white; 
+            border: none; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: all 0.3s;
+        }
+        
+        button:hover { background: #2980b9; }
+        
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #e84118; }
+        
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #26de81; }
+        
+        .btn-warning { background: var(--warning); }
+        .btn-warning:hover { background: #e67e22; }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+        
+        th { 
+            background: #1e272e; 
+            color: var(--blue); 
+            padding: 12px; 
+            font-size: 12px; 
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+        }
+        
+        td { 
+            padding: 12px 8px; 
+            border-bottom: 1px solid #485460; 
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .alert-row { 
+            background: var(--danger) !important; 
+            animation: blink 1s infinite; 
+            color: white; 
+            font-weight: bold;
+        }
+        
+        @keyframes blink { 50% { opacity: 0.7; } }
+        
+        .timer { 
+            font-family: 'Courier New', monospace; 
+            font-weight: bold; 
+            color: #f1c40f; 
+            font-size: 15px;
+        }
+        
+        .direction-tag { 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .incoming { background: var(--success); color: rgb(22, 1, 1); }
+        .outgoing { background: #f65904; color: rgb(5, 5, 5); }
+        
+        .status-passed { color: #f6f7f1; font-style: italic; }
+        .status-coming { color: var(--success); font-weight: bold; }
+        
+        .action-btn {
+            padding: 6px 12px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            color: white;
+        }
+        
+        .btn-delete { background: var(--danger); }
+        .btn-edit { background: var(--warning); }
+        
+        .live-clock {
+            font-size: 32px;
+            color: var(--success);
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: #485460;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: var(--blue);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .info-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 2px;
+        }
+        
+        .speed-badge { background: var(--purple); color: white; }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #dcdde1;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .card, .grid, .tab-content, table {
+            min-width: 0;
+        }
+
+        th, td {
+            word-break: break-word;
+        }
+
+        @media (max-width: 1100px) {
+            .container { width: min(calc(100vw - 16px), 1400px); }
+            .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 760px) {
+            body { padding: 8px; }
+            .tabs { flex-wrap: wrap; }
+            .tab { flex: 1 1 calc(50% - 10px); }
+            .form-row { grid-template-columns: 1fr; }
+            th, td { font-size: 12px; padding: 8px 6px; }
+        }
+        
+        .autosave-indicator {
+            font-size: 12px;
+            color: var(--success);
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+        
+        .history-item {
+            background: #485460;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+        
+        .history-time {
+            color: var(--warning);
+            font-weight: bold;
+        }
+
+        .history-section {
+            background: #1e272e;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .history-section h4 {
+            margin-bottom: 8px;
+            font-size: 16px;
+            color: #f1c40f;
+        }
+        
+            .history-number {
+                color: #f39c12;
+                margin-right: 6px;
+                font-weight: bold;
+            }
+        
+            .history-day-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 6px;
+            }
+        
+            .history-day-total {
+                font-size: 12px;
+                color: var(--success);
+                font-weight: bold;
+                margin-top: 4px;
+            }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2> ГАЛТ ТЭРЭГНИЙ ХӨДӨЛГӨӨНИЙ АЮУЛГҮЙ БАЙДАЛ</h2>
+        <div id="liveClock" class="live-clock">00:00:00</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('add')">➕ Нэмэх</button>
+                <button class="tab" onclick="switchTab('history')">📜 Түүх</button>
+            </div>
+            
+            <div id="addTab" class="tab-content active">
+                <h3>📝 Төлөвлөгөө оруулах</h3>
+                <div class="autosave-indicator" id="autosaveMsg">✓ Автомат хадгалагдаж байна</div>
+                
+                <label>Галт тэрэг №:</label>
+                <input type="number" id="tNo" placeholder="Жишээ: 31 (Сондгой бол Явах)">
+                
+                <!-- <label>Хаанаас хөдөлсөн (км):</label>
+                <input type="number" id="tStartKm" placeholder="Жишээ: 1" value="1">
+                
+                <label>Хаашаа очих (км):</label>
+                <input type="number" id="tTargetKm" placeholder="Жишээ: 100"> -->
+                
+                <label>Хөдөлсөн цаг:</label>
+                <input type="time" id="tStartTime" step="1" style="display:none;">
+                <input type="time" id="tStartTimeEven" step="1" style="display:none;">
+
+                <hr style="border: 0.5px solid #485460; margin: 15px 0;">
+                
+                <div class="form-row">
+                    <div>
+                        <label>ДСП:</label>
+                        <select id="dspName">
+                            <option>Бат-Эрдэнэ</option>
+                            <option>Гэрэлсүх</option>
+                            <option>Дорж</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label>ДНЦ:</label>
+                        <select id="dncName">
+                            <option>Болд</option>
+                            <option>Сарууул</option>
+                            <option>Оюунаа</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label>Миний байгаа км:</label>
+                <input type="number" id="myKm" value="5" step="0.1">
+                
+                <button onclick="addSchedule()" class="btn-success">📋 ГРАФИК НЭМЭХ</button>
+                <button onclick="clearAll()" class="btn-danger">🗑️ БҮГД УСТГАХ</button>
+            </div>
+            
+            <div id="historyTab" class="tab-content">
+                <h3>📜 Түүх</h3>
+                <div class="history-section">
+                    <h4>📅 Өдрийн архив</h4>
+                    <div id="dailyHistoryList"></div>
+                </div>
+                <div class="history-section">
+                    <h4>🧾 Үйлдлийн түүх</h4>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 БОДИТ БАЙДАЛ ШИНЖИЛГЭЭ ХҮСНЭГТ</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Чиглэл</th>
+                            <th>№</th>
+                            <th>Хөдөлсөн цаг</th>
+                            <th>Одоогийн км</th>
+                            <th>Ойртох км</th>
+                            <th>Төлөв</th>
+                            <th>Үйлдэл</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monitorBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+<audio id="alarm" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<!-- Галт тэрэгний шугаман байрлалын график -->
+<div id="trainLinearMap" style="margin:40px auto 0 auto; max-width:1200px; background:#222; border-radius:8px; padding:24px 16px;">
+    <h4 style="color:#fff; margin-bottom:12px; text-align: center; font-size: large;">🚂 Галт тэрэгний шугаман байрлал (км)</h4> <br> <br>
+    <br>
+    <div id="linearMapCanvas" style="height:60px; position:relative;"></div>
+</div>
+
+<script>
+    const MIN_KM = 1;
+    const MAX_KM = 30;
+    const CENTER_KM = 15;
+    const SPEED_MIN_PER_KM = 1; // 1 минут бүрт 1 км
+    let trains = [];
+    let history = [];
+    const DAILY_HISTORY_KEY = 'trainDailyHistory';
+    const ACTIVE_DAY_KEY = 'trainActiveDay';
+    const dailyHistoryList = document.getElementById('dailyHistoryList');
+    let dailyHistory = JSON.parse(localStorage.getItem(DAILY_HISTORY_KEY) || '[]');
+    let activeDay = localStorage.getItem(ACTIVE_DAY_KEY);
+    // Шугаман байрлалын станцууд (жишээ)
+    const STATIONS = [
+        {km: 1, name: "", color: '#fff'},
+        {km: 6, name: "Бага радиустай тахир", color: '#00b894'},
+        {km: 16, name: "Сэтэрхий", color: '#fdcb6e'},
+        {km: 26, name: "Анхааруулах", color: '#0984e3'},
+        {km: 29, name: "Орох дохио", color: '#e17055'},
+        {km: 30, name: "", color: '#fff'}
+    ];
+
+    function getDateKey(date = new Date()) {
+        return new Date(date).toISOString().slice(0, 10);
+    }
+
+    function saveDailyHistory() {
+        localStorage.setItem(DAILY_HISTORY_KEY, JSON.stringify(dailyHistory));
+    }
+
+    function renderDailyHistory() {
+        if (!dailyHistoryList) return;
+        if (dailyHistory.length === 0) {
+            dailyHistoryList.innerHTML = '<p style="color: #95a5a6; margin:0;">Өдрийн архив хоосон байна</p>';
+            return;
+        }
+        dailyHistoryList.innerHTML = dailyHistory.map(snapshot => {
+            const trainLines = snapshot.trains.map(t => `<li style="margin-bottom:3px; font-size:13px; color:#dcdde1;">№${t.no} ${t.direction} ${t.startTime} (${t.dsp} → ${t.dnc})</li>`).join('');
+            return `
+                <div class="history-item" style="background:#151a22;">
+                    <div style="margin-bottom:6px; font-weight:600; color:#0abde3;">${snapshot.date} (${snapshot.trains.length} галт тэрэг)</div>
+                    <ul style="margin:0 0 0 16px; padding:0; list-style: disc;">${trainLines}</ul>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function archiveDay(dateKey) {
+        if (!dateKey || trains.length === 0) {
+            return;
+        }
+        const normalized = getDateKey(dateKey);
+        if (dailyHistory.length && dailyHistory[0].date === normalized) {
+            return;
+        }
+        const snapshot = {
+            date: normalized,
+            archivedAt: new Date().toISOString(),
+            trains: trains.map(t => ({
+                no: t.no,
+                direction: t.type,
+                startTime: t.startTime,
+                dsp: t.dsp,
+                dnc: t.dnc,
+                startKm: t.startKm,
+                targetKm: t.targetKm
+            }))
+        };
+        dailyHistory.unshift(snapshot);
+        if (dailyHistory.length > 30) {
+            dailyHistory = dailyHistory.slice(0, 30);
+        }
+        saveDailyHistory();
+        renderDailyHistory();
+    }
+
+    // Хадгалагдсан өгөгдлийг ачаалах
+    function loadData() {
+        const saved = localStorage.getItem('trainSchedules');
+        if (saved) {
+            trains = JSON.parse(saved);
+        }
+        const savedHistory = localStorage.getItem('trainHistory');
+        if (savedHistory) {
+            history = JSON.parse(savedHistory);
+        }
+    }
+
+    // Автомат хадгалалт
+    function persistTrainsHistory(showMsg = true) {
+        localStorage.setItem('trainSchedules', JSON.stringify(trains));
+        localStorage.setItem('trainHistory', JSON.stringify(history));
+        if (showMsg) {
+            showAutosaveMsg();
+        }
+    }
+
+    function saveData() {
+        persistTrainsHistory();
+    }
+
+    function showAutosaveMsg() {
+        const msg = document.getElementById('autosaveMsg');
+        msg.style.color = 'var(--success)';
+        msg.textContent = '✓ Хадгалагдлаа: ' + new Date().toLocaleTimeString();
+        setTimeout(() => {
+            msg.style.color = '#95a5a6';
+        }, 2000);
+    }
+
+    function refreshHistoryViews() {
+        updateHistory();
+        renderDailyHistory();
+    }
+
+    function ensureActiveDay() {
+        const todayKey = getDateKey();
+        if (activeDay && activeDay !== todayKey) {
+            archiveDay(activeDay);
+            trains = [];
+            persistTrainsHistory(false);
+        }
+        activeDay = todayKey;
+        localStorage.setItem(ACTIVE_DAY_KEY, activeDay);
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        if (tab === 'add') {
+            document.querySelector('.tab:nth-child(1)').classList.add('active');
+            document.getElementById('addTab').classList.add('active');
+        } else {
+            document.querySelector('.tab:nth-child(2)').classList.add('active');
+            document.getElementById('historyTab').classList.add('active');
+            refreshHistoryViews();
+        }
+    }
+
+    // Галт тэргний №-оор талбаруудыг удирдах
+    document.getElementById('tNo').addEventListener('input', function() {
+        const tNo = parseInt(this.value);
+        const tStartTime = document.getElementById('tStartTime');
+        const tStartTimeEven = document.getElementById('tStartTimeEven');
+        if (!isNaN(tNo)) {
+            if (tNo % 2 === 0) {
+                tStartTime.style.display = 'none';
+                tStartTimeEven.style.display = '';
+            } else {
+                tStartTime.style.display = '';
+                tStartTimeEven.style.display = 'none';
+            }
+        } else {
+            tStartTime.style.display = 'none';
+            tStartTimeEven.style.display = 'none';
+        }
+    });
+
+    // addSchedule-д гараас оруулахгүйгээр зөв утгуудыг хадгалах
+    function addSchedule() {
+        const no = document.getElementById('tNo').value;
+        const isEven = parseInt(no) % 2 === 0;
+        const startKm = isEven ? MIN_KM : MAX_KM;
+        const targetKm = isEven ? MAX_KM : MIN_KM;
+        let startTime = '';
+        let referenceIsArrival = false;
+        if (isEven) {
+            startTime = document.getElementById('tStartTimeEven').value;
+            referenceIsArrival = true;
+        } else {
+            startTime = document.getElementById('tStartTime').value;
+        }
+        if(!no || !startTime) {
+            return alert("Бүх мэдээллийг оруулна уу!");
+        }
+        const trainData = {
+            id: Date.now(),
+            no: parseInt(no),
+            startKm: parseFloat(startKm),
+            targetKm: parseFloat(targetKm),
+            startTime: startTime,
+            type: isEven ? "ИРЭХ" : "ЯВАХ",
+            dsp: document.getElementById('dspName').value,
+            dnc: document.getElementById('dncName').value,
+            addedAt: new Date().toISOString(),
+            referenceIsArrival
+        };
+        trains.push(trainData);
+        history.unshift({
+            action: 'Нэмсэн',
+            train: trainData,
+            timestamp: new Date().toISOString()
+        });
+        saveData();
+        document.getElementById('tNo').value = "";
+        document.getElementById('tStartTime').value = "";
+        document.getElementById('tStartTimeEven').value = "";
+        alert("✓ График амжилттай нэмэгдлээ!");
+    }
+
+    function deleteTrain(id) {
+        if (!confirm('Энэ графикийг устгах уу?')) return;
+        const train = trains.find(t => t.id === id);
+        trains = trains.filter(t => t.id !== id);
+        // Түүхээс энэ галт тэрэгтэй холбоотой бүх бичлэгийг устгах
+        history = history.filter(h => !(h.train && h.train.id === id));
+        // Устгасан тухай шинэ түүх нэмэх
+        history.unshift({
+            action: 'Устгасан',
+            train: train,
+            timestamp: new Date().toISOString()
+        });
+        saveData();
+    }
+
+    function clearAll() {
+        if (!confirm('Бүх графикийг устгах уу?')) return;
+        
+        archiveDay(activeDay || getDateKey());
+        history.unshift({
+            action: 'Бүгдийг устгасан',
+            count: trains.length,
+            timestamp: new Date().toISOString()
+        });
+        
+        trains = [];
+        saveData();
+        activeDay = getDateKey();
+        localStorage.setItem(ACTIVE_DAY_KEY, activeDay);
+        refreshHistoryViews();
+    }
+
+    function getStationName(km) {
+        let closest = STATIONS.reduce((prev, curr) => 
+            Math.abs(curr.km - km) < Math.abs(prev.km - km) ? curr : prev
+        );
+        return closest.name;
+    }
+
+    function updateHistory() {
+        const list = document.getElementById('historyList');
+        if (history.length === 0) {
+            list.innerHTML = '<p style="color: #95a5a6;">Түүх хоосон байна</p>';
+            return;
+        }
+
+        const grouped = {};
+        history.forEach(h => {
+            if (!h.train) return;
+            if (h.action === 'Устгасан' || h.action === 'Бүгдийг устгасан' || h.action === 'Нэмсэн') return;
+            const d = new Date(h.timestamp);
+            const day = d.getFullYear() + '-' + (d.getMonth()+1).toString().padStart(2,'0') + '-' + d.getDate().toString().padStart(2,'0');
+            if (!grouped[day]) grouped[day] = [];
+            grouped[day].push(h);
+        });
+
+        const days = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+        if (days.length === 0) {
+            list.innerHTML = '<p style="color: #95a5a6;">Түүх хоосон байна</p>';
+            return;
+        }
+
+        let html = '';
+        days.forEach(day => {
+            const dayEntries = grouped[day];
+            const uniqueTrainNos = new Set(dayEntries.map(entry => entry.train.no));
+            html += `<div class="history-section">
+                <div class="history-day-header">
+                    <div>${day}</div>
+                    <div style="font-size: 12px; color: #95a5a6;">Бүртгэл: ${dayEntries.length}</div>
+                </div>`;
+            dayEntries.forEach((h, idx) => {
+                const time = new Date(h.timestamp).toLocaleTimeString('mn-MN');
+                html += `
+                    <div class="history-item">
+                        <div><span class="history-number">${idx + 1}.</span><b>№${h.train.no}</b> <span class="history-time">${time}</span></div>
+                    </div>
+                `;
+            });
+            html += `<div class="history-day-total">Энэ өдөр нийт ${uniqueTrainNos.size} галт тэрэг явсан</div>`;
+            html += '</div>';
+        });
+        list.innerHTML = html;
+    }
+
+    function refresh() {
+        /*
+        ЖИШЭЭ ТАЙЛБАР:
+        - №2 (ИРЭХ): 10:10 гэж өгөгдвөл 10:10-д 15-р км (Цэцэгт төв) дээр ирнэ. 1-15 км хооронд явна.
+        - №3 (ЯВАХ): 11:30 гэж өгөгдвөл 11:30-д 15-р км-ээс хөдөлж 15-30 км хооронд явна.
+        - Төв цэг: 15-р км (Цэцэгт төв)
+        */
+        const now = new Date();
+        document.getElementById('liveClock').innerText = now.toLocaleTimeString('mn-MN');
+        const myKmInput = document.getElementById('myKm').value;
+        const myKm = myKmInput === '' || isNaN(parseFloat(myKmInput)) ? null : parseFloat(myKmInput);
+        const tbody = document.getElementById('monitorBody');
+        tbody.innerHTML = '';
+        let alarmOn = false;
+        let anyTrainWaiting = false;
+        let alarmPlayed = false;
+        let trainPositions = [];
+        trains.forEach(t => {
+            const [sh, sm, ss=0] = t.startTime.split(':').map(Number);
+            const referenceTime = new Date(now);
+            referenceTime.setHours(sh, sm, ss, 0);
+            const startKm = t.startKm;
+            const targetKm = t.targetKm;
+            const direction = Math.sign(targetKm - startKm) || 1;
+            const totalRouteMinutes = Math.abs(targetKm - startKm) * SPEED_MIN_PER_KM;
+            const referenceIsArrival = !!t.referenceIsArrival;
+            let departureTime = new Date(referenceTime);
+            if (referenceIsArrival) {
+                departureTime = new Date(referenceTime.getTime() - totalRouteMinutes * 60 * 1000);
+            }
+            const elapsedMinutes = ((now - departureTime) / 1000) / 60;
+            let statusText = "";
+            let currentKm = startKm;
+            const routeLabel = `${startKm.toFixed(1)}-${targetKm.toFixed(1)}`;
+            if (elapsedMinutes < 0) {
+                statusText = `${startKm} км-с хөдлөх гэж байна`;
+                anyTrainWaiting = true;
+            } else if (elapsedMinutes >= totalRouteMinutes) {
+                currentKm = targetKm;
+                statusText = `${targetKm} км-д ирсэн`;
+            } else {
+                const progressKm = elapsedMinutes / SPEED_MIN_PER_KM;
+                currentKm = startKm + direction * progressKm;
+                currentKm = Math.min(Math.max(currentKm, MIN_KM), MAX_KM);
+                statusText = `${routeLabel} км хооронд явж байна`;
+            }
+            const highlightClass = direction > 0 ? "outgoing" : "incoming";
+            let shouldAlert = false;
+            if (myKm !== null) {
+                const distanceToMe = Math.abs(currentKm - myKm);
+                if (distanceToMe <= 1) {
+                    shouldAlert = true;
+                    if (!alarmPlayed) {
+                        alarmOn = true;
+                        alarmPlayed = true;
+                    }
+                }
+                trainPositions.push({
+                    no: t.no,
+                    km: currentKm,
+                    status: statusText,
+                    color: shouldAlert ? '#ff4757' : '#fff',
+                    highlight: shouldAlert,
+                });
+            } else {
+                trainPositions.push({
+                    no: t.no,
+                    km: currentKm,
+                    status: statusText,
+                    color: '#fff',
+                    highlight: false,
+                });
+            }
+            const row = `
+                <tr class="${shouldAlert ? 'alert-row' : ''}">
+                    <td><span class="direction-tag ${highlightClass}">${t.no % 2 === 0 ? 'ИРЭХ' : 'ЯВАХ'}</span></td>
+                    <td><b>№${t.no}</b></td>
+                    <td style="font-size: 11px;">${t.startTime}</td>
+                    <td><b>${currentKm.toFixed(1)}</b></td>
+                    <td><b>${myKm !== null ? Math.abs(currentKm - myKm).toFixed(1) : '-'}</b></td>
+                    <td class="${statusText.includes('ирсэн') ? 'status-passed' : 'status-coming'}">${statusText}</td>
+                    <td><button class="action-btn btn-delete" onclick="deleteTrain(${t.id})">🗑</button></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+
+        // Linear map visualization
+        drawLinearMap(trainPositions, myKm);
+
+        // Зогсож байна мессеж
+        const statusMsg = document.getElementById('trainStatusMsg');
+        if (anyTrainWaiting) {
+            statusMsg.style.display = '';
+        } else {
+            statusMsg.style.display = 'none';
+        }
+
+        if(alarmOn) {
+            document.getElementById('alarm').play().catch(() => {});
+        }
+    }
+
+    // Шугаман байрлалын зурах функц
+    function drawLinearMap(trainPositions, myKm) {
+        const canvas = document.getElementById('linearMapCanvas');
+        canvas.innerHTML = '';
+        const width = canvas.offsetWidth || 1000;
+        const height = 60;
+        const minKm = MIN_KM;
+        const maxKm = MAX_KM;
+        // Draw line
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.left = '0';
+        line.style.top = (height/2-6)+'px';
+        line.style.width = '98%';
+        line.style.height = '12px';
+        line.style.background = 'linear-gradient(90deg,#444,#888,#444)';
+        line.style.borderRadius = '6px';
+        canvas.appendChild(line);
+
+        // Draw km markers
+        for(let km=minKm; km<=maxKm; km+=5) {
+            const marker = document.createElement('div');
+            marker.style.position = 'absolute';
+            marker.style.left = ((km-minKm)/(maxKm-minKm)*canvas.offsetWidth)+'px';
+            marker.style.top = (height/2-22)+'px';
+            marker.style.width = '2px';
+            marker.style.height = '32px';
+            marker.style.background = '#fff';
+            marker.style.opacity = '0.7';
+            canvas.appendChild(marker);
+            // KM label
+            const label = document.createElement('div');
+            label.style.position = 'absolute';
+            label.style.left = ((km-minKm)/(maxKm-minKm)*canvas.offsetWidth-12)+'px';
+            label.style.top = (height/2+16)+'px';
+            label.style.color = '#fff';
+            label.style.fontSize = '13px';
+            label.style.fontWeight = 'bold';
+            label.innerText = km;
+            canvas.appendChild(label);
+        }
+
+        // Draw stations
+        STATIONS.forEach(st => {
+            const stDiv = document.createElement('div');
+            stDiv.style.position = 'absolute';
+            stDiv.style.left = ((st.km-minKm)/(maxKm-minKm)*canvas.offsetWidth-8)+'px';
+            stDiv.style.top = (height/2-36)+'px';
+            stDiv.style.width = '16px';
+            stDiv.style.height = '16px';
+            stDiv.style.background = st.color;
+            stDiv.style.borderRadius = '50%';
+            stDiv.style.border = '2px solid #fff';
+            stDiv.title = st.name;
+            canvas.appendChild(stDiv);
+            // Station label
+            const stLabel = document.createElement('div');
+            stLabel.style.position = 'absolute';
+            stLabel.style.left = ((st.km-minKm)/(maxKm-minKm)*canvas.offsetWidth-30)+'px';
+            stLabel.style.top = (height/2-56)+'px';
+            stLabel.style.color = st.color;
+            stLabel.style.fontSize = '12px';
+            stLabel.style.fontWeight = 'bold';
+            stLabel.innerText = st.name;
+            canvas.appendChild(stLabel);
+        });
+
+        // Draw train positions
+        trainPositions.forEach(tp => {
+            const x = (tp.km-minKm)/(maxKm-minKm)*canvas.offsetWidth;
+
+            // Draw dashed line from main line to marker
+            const dash = document.createElement('div');
+            dash.style.position = 'absolute';
+            dash.style.left = (x-1)+'px';
+            dash.style.top = (height/2+6)+'px';
+            dash.style.width = '2px';
+            dash.style.height = '32px';
+            dash.style.borderLeft = '2px dashed #fff';
+            dash.style.opacity = '0.7';
+            dash.style.zIndex = 1;
+            canvas.appendChild(dash);
+
+            // Main marker (larger, colored, shadow) BELOW the line
+            const marker = document.createElement('div');
+            marker.style.position = 'absolute';
+            marker.style.left = (x-14)+'px';
+            marker.style.top = (height/2+36)+'px';
+            marker.style.width = '28px';
+            marker.style.height = '28px';
+            // Color: green for incoming (even), yellow for outgoing (odd)
+            let trainColor = '';
+            if(tp.no % 2 === 0) {
+                trainColor = '#2ed573'; // green
+            } else {
+                trainColor = '#f1c40f'; // yellow
+            }
+            marker.style.background = tp.highlight ? '#ff4757' : trainColor;
+            marker.style.borderRadius = '50%';
+            marker.style.border = tp.highlight ? '3px solid #fff' : '2px solid #fff';
+            marker.style.boxShadow = tp.highlight ? '0 0 16px 4px #ff4757' : `0 0 10px 2px ${trainColor}88`;
+            marker.style.display = 'flex';
+            marker.style.alignItems = 'center';
+            marker.style.justifyContent = 'center';
+            marker.style.zIndex = 2;
+            marker.title = '№'+tp.no+' ('+tp.km.toFixed(1)+' км)';
+            canvas.appendChild(marker);
+
+            // Train number and km label below marker
+            const label = document.createElement('div');
+            label.style.position = 'absolute';
+            label.style.left = (x-32)+'px';
+            label.style.top = (height/2+66)+'px';
+            label.style.width = '70px';
+            label.style.textAlign = 'center';
+            label.style.fontWeight = 'bold';
+            label.style.fontSize = '15px';
+            label.style.color = tp.highlight ? '#ff4757' : '#fff';
+            label.style.textShadow = '0 1px 4px #222, 0 0 2px #fff';
+            // Arrow icon for direction
+            let arrow = '';
+            if(tp.no % 2 === 0) {
+                arrow = '\u2192'; // →
+            } else {
+                arrow = '\u2190'; // ←
+            }
+            label.innerText = `№${tp.no}  ${tp.km.toFixed(1)}км ${arrow}`;
+            label.title = marker.title;
+            canvas.appendChild(label);
+        });
+
+        // Draw my location
+        if(myKm !== null) {
+            // Person icon for my location
+            const myDiv = document.createElement('div');
+            myDiv.style.position = 'absolute';
+            myDiv.style.left = ((myKm-minKm)/(maxKm-minKm)*canvas.offsetWidth-12)+'px';
+            myDiv.style.top = (height/2-14)+'px';
+            myDiv.style.width = '28px';
+            myDiv.style.height = '28px';
+            myDiv.style.display = 'flex';
+            myDiv.style.alignItems = 'center';
+            myDiv.style.justifyContent = 'center';
+            myDiv.style.zIndex = 3;
+            myDiv.title = 'Миний байрлал ('+myKm+' км)';
+            myDiv.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="#f1c40f" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 0 4px #fff);"><circle cx="12" cy="7" r="5" stroke="#fff" stroke-width="2"/><path d="M4 22c0-4 4-7 8-7s8 3 8 7" stroke="#fff" stroke-width="2" fill="#f1c40f"/></svg>`;
+            canvas.appendChild(myDiv);
+        }
+    }
+
+    // Эхлэх үед өгөгдөл ачаалах
+    loadData();
+    ensureActiveDay();
+    renderDailyHistory();
+    setInterval(refresh, 1000);
+    refresh();
+</script>
+</body>
+</html>

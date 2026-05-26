@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>дижитал архив</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --card: #16161f;
+            --border: rgba(255,255,255,0.07);
+            --accent: #c8a96e;
+            --accent2: #7c6fcd;
+            --text: #e8e4dc;
+            --muted: #6b6878;
+            --danger: #e05c5c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,111,205,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(200,169,110,0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 30px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── HEADER ── */
+        header {
+            padding: 70px 0 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-eyebrow {
+            font-size: 11px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+            opacity: 0.9;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.6rem);
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #e8e4dc 30%, #c8a96e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--muted);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 16px 20px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .media-count {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .media-count span {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        /* Upload button */
+        .btn-upload {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            background: linear-gradient(135deg, var(--accent), #b8934e);
+            color: #0a0a0f;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(200,169,110,0.35);
+        }
+
+        .btn-upload svg { flex-shrink: 0; }
+
+        /* Filter tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab {
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .tab.active, .tab:hover {
+            background: rgba(200,169,110,0.12);
+            border-color: rgba(200,169,110,0.3);
+            color: var(--accent);
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed rgba(200,169,110,0.25);
+            border-radius: 18px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 28px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: none;
+        }
+
+        .drop-zone.visible { display: block; }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(200,169,110,0.05);
+        }
+
+        .drop-zone-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 0.6;
+        }
+
+        .drop-zone p {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .drop-zone strong { color: var(--accent); }
+
+        /* ── GRID ── */
+        .archive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .media-item {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--card);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .media-item::after {
+            content: '© 2026 B.Baasanjargal';
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            font-size: 10px;
+            letter-spacing: 0.4px;
+            color: rgba(255,255,255,0.72);
+            background: rgba(0,0,0,0.36);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 999px;
+            padding: 3px 8px;
+            pointer-events: none;
+            z-index: 3;
+            backdrop-filter: blur(4px);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .media-item:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(200,169,110,0.2);
+        }
+
+        .media-item img,
+        .media-item video {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .media-item:hover img { transform: scale(1.04); }
+
+        /* Type badge */
+        .type-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            backdrop-filter: blur(8px);
+        }
+
+        .type-badge.photo {
+            background: rgba(200,169,110,0.25);
+            color: var(--accent);
+            border: 1px solid rgba(200,169,110,0.4);
+        }
+
+        .type-badge.video {
+            background: rgba(124,111,205,0.25);
+            color: #a99ee8;
+            border: 1px solid rgba(124,111,205,0.4);
+        }
+
+        /* Delete button */
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(224,92,92,0.15);
+            border: 1px solid rgba(224,92,92,0.4);
+            color: #e05c5c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .media-item:hover .delete-btn { opacity: 1; }
+
+        .delete-btn:hover {
+            background: rgba(224,92,92,0.35);
+            transform: scale(1.1);
+        }
+
+        /* Overlay */
+        .overlay {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(5,5,10,0.92));
+            padding: 30px 14px 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .media-item:hover .overlay { opacity: 1; }
+
+        .overlay-text {
+            font-size: 12px;
+            color: rgba(232,228,220,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 52px;
+            opacity: 0.3;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p { font-size: 15px; line-height: 1.6; }
+
+        /* ── LIGHTBOX ── */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 10, 0.97);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .lightbox.open { display: flex; }
+
+        .lightbox-inner {
+            position: relative;
+            width: min(96vw, 1600px);
+            height: 92vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: lbIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes lbIn {
+            from { opacity: 0; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .lightbox-inner img,
+        .lightbox-inner video {
+            width: 100%;
+            height: calc(92vh - 34px);
+            object-fit: contain;
+            border-radius: 12px;
+            display: block;
+            background: #000;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+        }
+
+        .lb-close {
+            position: fixed;
+            top: 24px; right: 28px;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            font-size: 20px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lb-close:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        .lb-caption {
+            text-align: center;
+            margin-top: 14px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Notification toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 22px;
+            font-size: 13px;
+            color: var(--text);
+            z-index: 9999;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Confirm dialog */
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5,5,10,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(6px);
+        }
+
+        .confirm-dialog.open { display: flex; }
+
+        .confirm-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 30px;
+            text-align: center;
+            max-width: 320px;
+            width: 90%;
+            animation: lbIn 0.25s ease;
+        }
+
+        .confirm-box h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .confirm-box p { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+
+        .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+
+        .btn-cancel {
+            padding: 9px 22px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            border-radius: 9px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+
+        .btn-delete-confirm {
+            padding: 9px 22px;
+            background: rgba(224,92,92,0.15);
+            border: 1px solid rgba(224,92,92,0.4);
+            color: #e05c5c;
+            border-radius: 9px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-delete-confirm:hover { background: rgba(224,92,92,0.3); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+        @media (max-width: 600px) {
+            .toolbar { flex-direction: column; align-items: flex-start; }
+            .archive-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+            .media-item img, .media-item video { height: 170px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-eyebrow">✦ дижитал архив ✦</div>
+        <h1>хэсгийн фото архив</h1>
+        <p>онцлох үйл явдлын хураангуй </p>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="media-count">Нийт: <span id="countDisplay">0</span> медиа</div>
+            <div class="filter-tabs">
+                <button class="tab active" onclick="filterMedia('all', this)">Бүгд</button>
+                <button class="tab" onclick="filterMedia('photo', this)">Зураг</button>
+                <button class="tab" onclick="filterMedia('video', this)">Видео</button>
+            </div>
+        </div>
+        <button class="btn-upload" onclick="toggleDropZone()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Медиа нэмэх
+        </button>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="dropZone"
+         onclick="document.getElementById('fileInput').click()"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event)">
+        <div class="drop-zone-icon">📁</div>
+        <p><strong>Зураг эсвэл видео сонгох</strong></p>
+        <p style="margin-top:6px; font-size:12px;">Чирж оруулах эсвэл дарж сонгох · JPG, PNG, GIF, MP4, MOV</p>
+    </div>
+
+    <input type="file" id="fileInput" multiple accept="image/*,video/*" style="display:none" onchange="handleFiles(this.files)">
+
+
+    <!-- Grid + Comments flex row -->
+    <div style="display:flex;align-items:flex-start;gap:32px;margin-bottom:24px;">
+        <div class="archive-grid" id="grid" style="flex:1 1 0;min-width:0;">
+            <!-- Жишээ зураг -->
+            <div class="media-item" data-type="photo">
+                <span class="type-badge photo">Зураг</span>
+                <button class="delete-btn" type="button">
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <img src="https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=600&q=80" alt="Гэр бүл">
+                <div class="overlay">
+                    <div class="overlay-text">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                        Томруулж харах
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Comments section -->
+        <aside style="width:370px;min-width:260px;max-width:420px;position:relative;z-index:2;background:var(--surface);border-radius:14px;padding:18px 18px 12px 18px;box-shadow:0 2px 16px rgba(0,0,0,0.08);border:1px solid var(--border);margin-top:0;">
+            <h3 style="font-size:17px;font-family:'Playfair Display',serif;color:var(--accent);margin-bottom:10px;">Сэтгэгдэл</h3>
+            <form id="commentForm" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                <textarea id="commentInput" rows="4" maxlength="300" placeholder="Сэтгэгдлээ бичнэ үү..." style="resize:vertical;min-height:60px;max-height:180px;padding:10px 12px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;width:100%;"></textarea>
+                <button type="submit" style="align-self:flex-end;padding:8px 22px;background:linear-gradient(135deg,var(--accent),#b8934e);color:#0a0a0f;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border:none;border-radius:8px;cursor:pointer;">Илгээх</button>
+            </form>
+            <div id="commentsList" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+        </aside>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+    <div class="lightbox-inner">
+        <img id="lbImg" src="" style="display:none">
+        <video id="lbVideo" controls style="display:none"></video>
+        <div class="lb-caption" id="lbCaption"></div>
+    </div>
+</div>
+
+<!-- Confirm delete dialog -->
+<div class="confirm-dialog" id="confirmDialog">
+    <div class="confirm-box">
+        <h3>Устгах уу?</h3>
+        <p>Энэ медиаг архиваас бүрмөсөн устгах уу?</p>
+        <div class="confirm-actions">
+            <button class="btn-cancel" id="cancelDeleteBtn" type="button">Болих</button>
+            <button class="btn-delete-confirm" id="confirmDeleteBtn" type="button">Устгах</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+    <span id="toastIcon">✓</span>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+        // --- Comments logic ---
+        const COMMENT_KEY = 'familyArchiveCommentsV1';
+        function saveCommentsToStorage(comments) {
+            try { localStorage.setItem(COMMENT_KEY, JSON.stringify(comments)); } catch(e) {}
+        }
+        function loadCommentsFromStorage() {
+            try {
+                const raw = localStorage.getItem(COMMENT_KEY);
+                if (!raw) return [];
+                const arr = JSON.parse(raw);
+                return Array.isArray(arr) ? arr : [];
+            } catch(e) { return []; }
+        }
+        function renderComments() {
+            const list = document.getElementById('commentsList');
+            const comments = loadCommentsFromStorage();
+            if (!comments.length) {
+                list.innerHTML = '<span style="color:var(--muted);font-size:13px;">Одоогоор сэтгэгдэл алга.</span>';
+                return;
+            }
+            list.innerHTML = '';
+            comments.slice().reverse().forEach(c => {
+                const div = document.createElement('div');
+                div.style.background = 'rgba(255,255,255,0.03)';
+                div.style.borderRadius = '7px';
+                div.style.padding = '7px 10px';
+                div.style.fontSize = '13px';
+                div.style.color = 'var(--text)';
+                div.innerHTML = `<span style='color:var(--accent2);font-size:12px;'>🗨</span> ${c.text}<div style='font-size:11px;color:var(--muted);margin-top:2px;text-align:right;'>${c.date}</div>`;
+                list.appendChild(div);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('commentForm');
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const input = document.getElementById('commentInput');
+                    const text = input.value.trim();
+                    if (!text) return;
+                    const comments = loadCommentsFromStorage();
+                    comments.push({ text, date: new Date().toLocaleString('mn-MN', { hour12: false }) });
+                    saveCommentsToStorage(comments);
+                    input.value = '';
+                    renderComments();
+                });
+            }
+            renderComments();
+        });
+    let currentFilter = 'all';
+    let pendingDeleteItem = null;
+    let animDelay = 0;
+    const STORAGE_KEY = 'familyArchiveMediaV1';
+
+    function fileToDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function createMediaItem(type, src, name = '') {
+        const item = document.createElement('div');
+        item.className = 'media-item';
+        item.dataset.type = type;
+        item.dataset.name = name;
+
+        if (type === 'video') {
+            item.innerHTML = `
+                <span class="type-badge video">Видео</span>
+                <button class="delete-btn" type="button">
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <video src="${src}" muted preload="metadata" playsinline>
+                    <source src="${src}" type="video/mp4">
+                </video>
+                <div class="overlay">
+                    <div class="overlay-text">▶ Тоглуулах</div>
+                </div>`;
+        } else {
+            item.innerHTML = `
+                <span class="type-badge photo">Зураг</span>
+                <button class="delete-btn" type="button">
+                    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <img src="${src}" alt="${name}">
+                <div class="overlay">
+                    <div class="overlay-text">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"/></svg>
+                        Томруулж харах
+                    </div>
+                </div>`;
+        }
+
+        if (currentFilter !== 'all' && item.dataset.type !== currentFilter) {
+            item.style.display = 'none';
+        }
+
+        return item;
+    }
+
+    function saveMediaToStorage() {
+        const items = Array.from(document.querySelectorAll('.media-item')).map(item => {
+            const type = item.dataset.type;
+            const name = item.dataset.name || '';
+            const src = type === 'video'
+                ? item.querySelector('source')?.src || item.querySelector('video')?.src || ''
+                : item.querySelector('img')?.src || '';
+            return { type, src, name };
+        }).filter(m => m.src);
+
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        } catch (err) {
+            showToast('⚠', 'Autosave хадгалж чадсангүй (санах ой дүүрсэн)');
+        }
+    }
+
+    function loadMediaFromStorage() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+
+        try {
+            const list = JSON.parse(raw);
+            if (!Array.isArray(list)) return false;
+
+            // Flex layout үед зөв grid-ийг сонгох
+            let grid = document.getElementById('grid');
+            if (!grid) {
+                // flex row layout-д grid id-тай div-ийг хайж олно
+                const grids = document.querySelectorAll('.archive-grid');
+                if (grids.length > 0) grid = grids[0];
+            }
+            if (!grid) return false;
+            grid.innerHTML = '';
+            list.forEach((m, i) => {
+                const item = createMediaItem(m.type, m.src, m.name || '');
+                item.style.animationDelay = (i * 0.05) + 's';
+                grid.appendChild(item);
+            });
+
+            updateCount();
+            checkEmpty();
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    // Count update
+    function updateCount() {
+        const items = document.querySelectorAll('.media-item');
+        document.getElementById('countDisplay').textContent = items.length;
+    }
+
+    if (!loadMediaFromStorage()) {
+        updateCount();
+        saveMediaToStorage();
+    }
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', closeConfirm);
+    document.getElementById('confirmDeleteBtn').addEventListener('click', executeDelete);
+
+    document.getElementById('grid').addEventListener('click', e => {
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const item = deleteBtn.closest('.media-item');
+            confirmDelete(item);
+            return;
+        }
+
+        const item = e.target.closest('.media-item');
+        if (!item) return;
+
+        if (item.dataset.type === 'video') {
+            const source = item.querySelector('source');
+            const video = item.querySelector('video');
+            const src = source?.src || video?.src;
+            openLightboxVideo(src, item.dataset.name || '');
+            return;
+        }
+
+        openLightbox(item);
+    });
+
+    // Toggle drop zone
+    function toggleDropZone() {
+        const dz = document.getElementById('dropZone');
+        dz.classList.toggle('visible');
+        if (dz.classList.contains('visible')) {
+            dz.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    // Drag & Drop
+    function handleDragOver(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.add('drag-over');
+    }
+
+    function handleDragLeave() {
+        document.getElementById('dropZone').classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.remove('drag-over');
+        handleFiles(e.dataTransfer.files);
+    }
+
+    // Handle uploaded files
+    async function handleFiles(files) {
+        const grid = document.getElementById('grid');
+        // Remove empty state if present
+        const empty = grid.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        const validFiles = Array.from(files).filter(file =>
+            file.type.startsWith('image/') || file.type.startsWith('video/')
+        );
+
+        if (!validFiles.length) {
+            showToast('⚠', 'Зөвхөн зураг эсвэл видео файл нэмнэ үү');
+            return;
+        }
+
+        const prepared = [];
+        for (const file of validFiles) {
+            const src = await fileToDataURL(file);
+            prepared.push({
+                type: file.type.startsWith('video/') ? 'video' : 'photo',
+                src,
+                name: file.name || ''
+            });
+        }
+
+        prepared.forEach((media, i) => {
+            const item = createMediaItem(media.type, media.src, media.name);
+            item.style.animationDelay = (i * 0.07) + 's';
+            grid.appendChild(item);
+        });
+
+        updateCount();
+        saveMediaToStorage(); // AUTOSAVE
+        showToast('✦', `${validFiles.length} медиа амжилттай нэмэгдлээ`);
+
+        // Hide drop zone after upload
+        document.getElementById('dropZone').classList.remove('visible');
+        document.getElementById('fileInput').value = '';
+    }
+
+    // Filter
+    function filterMedia(type, btn) {
+        currentFilter = type;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.media-item').forEach(item => {
+            if (type === 'all' || item.dataset.type === type) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Lightbox – image
+    function openLightbox(item) {
+        const img = item.querySelector('img');
+        if (!img) return;
+        document.getElementById('lbImg').src = img.src;
+        document.getElementById('lbImg').style.display = 'block';
+        document.getElementById('lbVideo').style.display = 'none';
+        document.getElementById('lbCaption').textContent = img.alt || '';
+        document.getElementById('lightbox').classList.add('open');
+    }
+
+    // Lightbox – video
+    function openLightboxVideo(url, name) {
+        const vid = document.getElementById('lbVideo');
+        vid.src = url;
+        vid.controls = true;
+        vid.preload = 'auto';
+        vid.playsInline = true;
+        vid.muted = false;
+        vid.volume = 1;
+        vid.style.display = 'block';
+        document.getElementById('lbImg').style.display = 'none';
+        document.getElementById('lbCaption').textContent = name || '';
+        document.getElementById('lightbox').classList.add('open');
+        const playPromise = vid.play();
+        if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => {
+                // Some browsers require manual play interaction.
+            });
+        }
+    }
+
+    function closeLightbox(e) {
+        if (e && e.target !== document.getElementById('lightbox') && !e.target.classList.contains('lb-close')) return;
+        document.getElementById('lightbox').classList.remove('open');
+        const vid = document.getElementById('lbVideo');
+        vid.pause();
+        vid.src = '';
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Basic content protection for media area.
+    document.addEventListener('contextmenu', e => {
+        if (e.target.closest('.media-item, .lightbox')) {
+            e.preventDefault();
+            showToast('©', 'Зохиогчийн эрхээр хамгаалагдсан контент');
+        }
+    });
+
+    document.addEventListener('dragstart', e => {
+        if (e.target.closest('img, video')) {
+            e.preventDefault();
+        }
+    });
+
+    // Delete confirmation
+    function confirmDelete(item) {
+        if (!item) return;
+        pendingDeleteItem = item;
+        document.getElementById('confirmDialog').classList.add('open');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmDialog').classList.remove('open');
+        pendingDeleteItem = null;
+    }
+
+    function executeDelete() {
+        if (!pendingDeleteItem) return;
+        const itemToDelete = pendingDeleteItem;
+        itemToDelete.style.transition = 'opacity 0.3s, transform 0.3s';
+        itemToDelete.style.opacity = '0';
+        itemToDelete.style.transform = 'scale(0.85)';
+
+        closeConfirm();
+
+        setTimeout(() => {
+            itemToDelete.remove();
+            updateCount();
+            checkEmpty();
+            saveMediaToStorage();
+        }, 300);
+        showToast('🗑', 'Медиа устгагдлаа');
+    }
+
+    function checkEmpty() {
+        const grid = document.getElementById('grid');
+        if (!grid.querySelector('.media-item')) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🌸</div>
+                    <p>Одоохондоо медиа байхгүй байна.<br>Дурсамжуудаа нэмж эхлээрэй!</p>
+                </div>`;
+        }
+    }
+
+    // Toast
+    function showToast(icon, msg) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toastIcon').textContent = icon;
+        document.getElementById('toastMsg').textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+</script>
+</body>
+</html>
