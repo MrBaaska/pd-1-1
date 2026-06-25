@@ -581,11 +581,14 @@ body {
       <p>Онцлох ажлын мэдээллийн архив</p>
     </div>
     <div class="header-actions" style="display:flex;gap:10px;align-items:center">
-      <button class="btn btn-ghost" onclick="autosave(true);toast('Хадгалагдлаа ✓','success')">
+      <button class="btn btn-ghost" id="btnSave" onclick="autosave(true);toast('Хадгалагдлаа ✓','success')" style="display:none">
         <i class="fa-solid fa-floppy-disk"></i> Хадгалах
       </button>
-      <button class="btn btn-primary" onclick="openAddYearModal()">
+      <button class="btn btn-primary" id="btnAddYear" onclick="openAddYearModal()" style="display:none">
         <i class="fa-solid fa-plus"></i> Жил нэмэх
+      </button>
+      <button class="btn btn-ghost" id="btnLogin" onclick="openLoginModal()">
+        <i class="fa-solid fa-lock"></i> Нэвтрэх
       </button>
     </div>
   </div>
@@ -632,6 +635,19 @@ body {
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal" onclick="closeLoginModal(event)">
+  <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+  <div class="modal-box" style="padding:28px;max-width:360px;background:#fff;color:var(--ink)">
+    <h3 style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--steel);margin-bottom:20px">Засварлах эрхээр нэвтрэх</h3>
+    <input type="password" id="loginCodeInput" placeholder="Нэвтрэх код" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.95rem;margin-bottom:16px" onkeydown="if(event.key==='Enter')submitLogin()">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" style="color:var(--ink);border-color:var(--border);background:#f1f5f9" onclick="closeLoginModal()">Болих</button>
+      <button class="btn btn-primary" onclick="submitLogin()">Нэвтрэх</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <div id="autosave-bar">
@@ -640,6 +656,58 @@ body {
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════
+// EDIT-MODE / LOGIN
+// ══════════════════════════════════════════════════════
+const EDIT_CODE = '89669234';
+const EDIT_SESSION_KEY = 'railway_archive_edit';
+let editMode = sessionStorage.getItem(EDIT_SESSION_KEY) === '1';
+
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function openLoginModal() {
+  if (editMode) { logout(); return; }
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(() => document.getElementById('loginCodeInput').focus(), 50);
+}
+function closeLoginModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('loginModal') && !e.target.classList.contains('modal-close')) return;
+  document.getElementById('loginModal').classList.remove('open');
+  document.getElementById('loginCodeInput').value = '';
+}
+function submitLogin() {
+  const val = document.getElementById('loginCodeInput').value.trim();
+  if (val === EDIT_CODE) {
+    editMode = true;
+    sessionStorage.setItem(EDIT_SESSION_KEY, '1');
+    closeLoginModal();
+    applyEditModeUI();
+    render();
+    toast('Засварлах горим нээгдлээ ✓', 'success');
+  } else {
+    toast('Нэвтрэх код буруу байна', 'error');
+  }
+}
+function logout() {
+  editMode = false;
+  sessionStorage.removeItem(EDIT_SESSION_KEY);
+  applyEditModeUI();
+  render();
+  toast('Гарлаа', 'success');
+}
+function applyEditModeUI() {
+  document.getElementById('btnSave').style.display = editMode ? 'inline-flex' : 'none';
+  document.getElementById('btnAddYear').style.display = editMode ? 'inline-flex' : 'none';
+  const lb = document.getElementById('btnLogin');
+  lb.innerHTML = editMode
+    ? '<i class="fa-solid fa-lock-open"></i> Гарах'
+    : '<i class="fa-solid fa-lock"></i> Нэвтрэх';
+}
+
 // ══════════════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════════════
@@ -859,24 +927,28 @@ function ensureTeamBoxData(year) {
 }
 
 function updateTeamBoxField(year, field, val) {
+  if (!editMode) return;
   ensureTeamBoxData(year);
   db.years[year].teamBox[field] = val;
   autosave(false);
 }
 
 function updateTeamBoxPdb(year, idx, val) {
+  if (!editMode) return;
   ensureTeamBoxData(year);
   db.years[year].teamBox.pdb[idx] = val;
   autosave(false);
 }
 
 function updateTeamBoxRole(year, idx, val) {
+  if (!editMode) return;
   ensureTeamBoxData(year);
   db.years[year].teamBox.roles[idx] = val;
   autosave(false);
 }
 
 function clearTeamImage(year, key) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   ensureTeamBoxData(year);
   delete db.years[year].teamBox.images[key];
   renderMain();
@@ -907,6 +979,7 @@ function validateImageOrientation(file, required) {
 }
 
 function saveTeamImage(year, key, input, required) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const file = input && input.files && input.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) {
@@ -942,14 +1015,14 @@ function buildTeamImageControl(year, box, key, required) {
 
   return `
     <div class="team-media">
-      ${imgUrl ? `<img src="${imgUrl}" alt="${key}" class="team-media-preview ${required}">` : ''}
-      <div class="team-media-actions">
+      ${imgUrl ? `<img src="${esc(imgUrl)}" alt="${esc(key)}" class="team-media-preview ${required}">` : ''}
+      ${editMode ? `<div class="team-media-actions">
         <input id="${inputId}" type="file" accept="image/*" style="display:none" onchange="saveTeamImage(${year},'${key}',this,'${required}')">
         <button class="btn btn-sm btn-primary" type="button" onclick="document.getElementById('${inputId}').click()">
           <i class="fa-solid fa-image"></i> Зураг оруулах
         </button>
         ${imgUrl ? `<button class="btn btn-sm btn-danger" type="button" onclick="clearTeamImage(${year},'${key}')"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-      </div>
+      </div>` : ''}
     </div>
   `;
 }
@@ -961,52 +1034,52 @@ function buildTeamBox(year, data) {
       <table class="team-table">
         <tr>
           <td>
-            <input type="text" value="${box.master}" oninput="updateTeamBoxField(${year},'master',this.value)">
+            <input type="text" value="${esc(box.master)}" oninput="updateTeamBoxField(${year},'master',this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'master', 'portrait')}
           </td>
           <td colspan="3" class="wide-cell">
-            <textarea oninput="updateTeamBoxField(${year},'intro',this.value)" placeholder="Тухайн хэсгийн танилцуулга, тайлбар текст бичнэ үү">${box.intro || ''}</textarea>
+            <textarea oninput="updateTeamBoxField(${year},'intro',this.value)" placeholder="Тухайн хэсгийн танилцуулга, тайлбар текст бичнэ үү" ${editMode?'':'disabled'}>${esc(box.intro || '')}</textarea>
           </td>
         </tr>
         <tr>
           <td>
-            <input type="text" value="${box.pdb[0] || ''}" oninput="updateTeamBoxPdb(${year},0,this.value)">
+            <input type="text" value="${esc(box.pdb[0] || '')}" oninput="updateTeamBoxPdb(${year},0,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'pdb0', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.pdb[1] || ''}" oninput="updateTeamBoxPdb(${year},1,this.value)">
+            <input type="text" value="${esc(box.pdb[1] || '')}" oninput="updateTeamBoxPdb(${year},1,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'pdb1', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.pdb[2] || ''}" oninput="updateTeamBoxPdb(${year},2,this.value)">
+            <input type="text" value="${esc(box.pdb[2] || '')}" oninput="updateTeamBoxPdb(${year},2,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'pdb2', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.pdb[3] || ''}" oninput="updateTeamBoxPdb(${year},3,this.value)">
+            <input type="text" value="${esc(box.pdb[3] || '')}" oninput="updateTeamBoxPdb(${year},3,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'pdb3', 'portrait')}
           </td>
         </tr>
         <tr>
           <td colspan="4" class="big-cell">
-            <input type="text" value="${box.staffLabel}" oninput="updateTeamBoxField(${year},'staffLabel',this.value)">
+            <input type="text" value="${esc(box.staffLabel)}" oninput="updateTeamBoxField(${year},'staffLabel',this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'staffLabel', 'landscape')}
           </td>
         </tr>
         <tr>
           <td>
-            <input type="text" value="${box.roles[0] || ''}" oninput="updateTeamBoxRole(${year},0,this.value)">
+            <input type="text" value="${esc(box.roles[0] || '')}" oninput="updateTeamBoxRole(${year},0,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'role0', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.roles[1] || ''}" oninput="updateTeamBoxRole(${year},1,this.value)">
+            <input type="text" value="${esc(box.roles[1] || '')}" oninput="updateTeamBoxRole(${year},1,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'role1', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.roles[2] || ''}" oninput="updateTeamBoxRole(${year},2,this.value)">
+            <input type="text" value="${esc(box.roles[2] || '')}" oninput="updateTeamBoxRole(${year},2,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'role2', 'portrait')}
           </td>
           <td>
-            <input type="text" value="${box.roles[3] || ''}" oninput="updateTeamBoxRole(${year},3,this.value)">
+            <input type="text" value="${esc(box.roles[3] || '')}" oninput="updateTeamBoxRole(${year},3,this.value)" ${editMode?'':'disabled'}>
             ${buildTeamImageControl(year, box, 'role3', 'portrait')}
           </td>
         </tr>
@@ -1024,9 +1097,9 @@ function buildYearBlock(year, data) {
     <div class="year-heading">
       <h2>${year} <span style="font-size:1rem;font-weight:400;color:var(--muted);font-family:'Inter',sans-serif">он</span></h2>
       <div class="divider"></div>
-      <button class="btn btn-sm btn-danger" onclick="deleteYear(${year})">
+      ${editMode ? `<button class="btn btn-sm btn-danger" onclick="deleteYear(${year})">
         <i class="fa-solid fa-trash-can"></i> Жил устгах
-      </button>
+      </button>` : ''}
     </div>
 
     <!-- INFO CARDS -->
@@ -1040,9 +1113,9 @@ function buildYearBlock(year, data) {
     <!-- NUMERIC RECORDS -->
     <div class="section-header">
       <div class="section-title"><i class="fa-solid fa-chart-bar"></i> Тоон үзүүлэлт</div>
-      <button class="btn btn-sm btn-primary" onclick="openAddRecord(${year})">
+      ${editMode ? `<button class="btn btn-sm btn-primary" onclick="openAddRecord(${year})">
         <i class="fa-solid fa-plus"></i> Үзүүлэлт нэмэх
-      </button>
+      </button>` : ''}
     </div>
     <div id="addRecordForm_${year}" style="display:none">
       <div class="add-form">
@@ -1063,9 +1136,9 @@ function buildYearBlock(year, data) {
     <!-- PHOTO GALLERY -->
     <div class="section-header" style="margin-top:8px">
       <div class="section-title"><i class="fa-solid fa-images"></i> Фото архив</div>
-      <button class="btn btn-sm btn-primary" onclick="openAddPhoto(${year})">
+      ${editMode ? `<button class="btn btn-sm btn-primary" onclick="openAddPhoto(${year})">
         <i class="fa-solid fa-upload"></i> Зураг нэмэх
-      </button>
+      </button>` : ''}
     </div>
     <div id="addPhotoForm_${year}" style="display:none">
       <div class="add-form">
@@ -1086,9 +1159,9 @@ function buildYearBlock(year, data) {
     <!-- VIDEO SECTION -->
     <div class="section-header" style="margin-top:8px">
       <div class="section-title"><i class="fa-solid fa-video"></i> Видео бичлэг</div>
-      <button class="btn btn-sm btn-primary" onclick="openAddVideo(${year})">
+      ${editMode ? `<button class="btn btn-sm btn-primary" onclick="openAddVideo(${year})">
         <i class="fa-solid fa-plus"></i> Видео нэмэх
-      </button>
+      </button>` : ''}
     </div>
     <div id="addVideoForm_${year}" style="display:none">
       <div class="add-form">
@@ -1115,16 +1188,16 @@ function buildInfoCard(year, field, title, icon, content) {
     <div class="info-card">
       <div class="info-card-header">
         <h3><i class="fa-solid ${icon}"></i> ${title}</h3>
-        <button class="btn btn-sm" style="background:#f1f5f9;color:var(--steel-mid);border:1px solid var(--border)"
+        ${editMode ? `<button class="btn btn-sm" style="background:#f1f5f9;color:var(--steel-mid);border:1px solid var(--border)"
           onclick="toggleEditInfo(${year},'${field}')">
           <i class="fa-solid fa-pen-to-square"></i> Засах
-        </button>
+        </button>` : ''}
       </div>
       <div id="infoView_${year}_${field}">
-        <p style="font-size:0.88rem;color:#374151;line-height:1.7">${content}</p>
+        <p style="font-size:0.88rem;color:#374151;line-height:1.7">${esc(content)}</p>
       </div>
       <div id="infoEdit_${year}_${field}" style="display:none">
-        <textarea id="infoTA_${year}_${field}" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.88rem;resize:vertical;min-height:120px;color:var(--ink)">${content}</textarea>
+        <textarea id="infoTA_${year}_${field}" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.88rem;resize:vertical;min-height:120px;color:var(--ink)">${esc(content)}</textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
           <button class="btn btn-sm btn-ghost" style="color:var(--ink);border:1px solid var(--border);background:#f1f5f9" onclick="cancelEditInfo(${year},'${field}')">Болих</button>
           <button class="btn btn-sm btn-primary" onclick="saveInfo(${year},'${field}')">Хадгалах</button>
@@ -1135,6 +1208,7 @@ function buildInfoCard(year, field, title, icon, content) {
 }
 
 function toggleEditInfo(year, field) {
+  if (!editMode) return;
   document.getElementById(`infoView_${year}_${field}`).style.display = 'none';
   document.getElementById(`infoEdit_${year}_${field}`).style.display = 'block';
 }
@@ -1144,17 +1218,18 @@ function cancelEditInfo(year, field) {
   document.getElementById(`infoTA_${year}_${field}`).value = db.years[year][field];
 }
 function saveInfo(year, field) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const val = document.getElementById(`infoTA_${year}_${field}`).value.trim();
   if (!val) return toast('Хоосон байж болохгүй', 'error');
   db.years[year][field] = val;
-  document.getElementById(`infoView_${year}_${field}`).innerHTML = `<p style="font-size:0.88rem;color:#374151;line-height:1.7">${val}</p>`;
+  document.getElementById(`infoView_${year}_${field}`).innerHTML = `<p style="font-size:0.88rem;color:#374151;line-height:1.7">${esc(val)}</p>`;
   cancelEditInfo(year, field);
   autosave(false);
   toast('Хадгалагдлаа ✓', 'success');
 }
 
 function buildRecordsTable(year, records) {
-  if (!records.length) return `<div class="empty-state" style="margin-bottom:20px"><i class="fa-solid fa-table"></i><p>Тоон үзүүлэлт алга. Нэмэхийн тулд дээрх товчийг дарна уу.</p></div>`;
+  if (!records.length) return `<div class="empty-state" style="margin-bottom:20px"><i class="fa-solid fa-table"></i><p>Тоон үзүүлэлт алга. ${editMode ? 'Нэмэхийн тулд дээрх товчийг дарна уу.' : ''}</p></div>`;
   return `
     <table class="records-table">
       <thead>
@@ -1162,16 +1237,16 @@ function buildRecordsTable(year, records) {
           <th>Үзүүлэлтийн нэр</th>
           <th>Утга</th>
           <th>Нэгж</th>
-          <th style="width:80px">Устгах</th>
+          ${editMode ? '<th style="width:80px">Устгах</th>' : ''}
         </tr>
       </thead>
       <tbody>
         ${records.map(r => `
           <tr>
-            <td><input type="text" value="${r.name}" oninput="updateRecord(${year},'${r.id}','name',this.value)"></td>
-            <td><input type="text" value="${r.value}" oninput="updateRecord(${year},'${r.id}','value',this.value)" style="font-weight:700;color:var(--steel)"></td>
-            <td><input type="text" value="${r.unit}" oninput="updateRecord(${year},'${r.id}','unit',this.value)"></td>
-            <td><button class="btn btn-sm btn-danger" onclick="deleteRecord(${year},'${r.id}')"><i class="fa-solid fa-xmark"></i></button></td>
+            <td><input type="text" value="${esc(r.name)}" oninput="updateRecord(${year},'${r.id}','name',this.value)" ${editMode ? '' : 'disabled'}></td>
+            <td><input type="text" value="${esc(r.value)}" oninput="updateRecord(${year},'${r.id}','value',this.value)" style="font-weight:700;color:var(--steel)" ${editMode ? '' : 'disabled'}></td>
+            <td><input type="text" value="${esc(r.unit)}" oninput="updateRecord(${year},'${r.id}','unit',this.value)" ${editMode ? '' : 'disabled'}></td>
+            ${editMode ? `<td><button class="btn btn-sm btn-danger" onclick="deleteRecord(${year},'${r.id}')"><i class="fa-solid fa-xmark"></i></button></td>` : ''}
           </tr>
         `).join('')}
       </tbody>
@@ -1183,18 +1258,18 @@ function buildGallery(year, photos) {
   if (!photos.length) return `<div class="empty-state"><i class="fa-regular fa-image"></i><p>Зураг байхгүй байна.</p></div>`;
   return `<div class="gallery-grid">${photos.map(p => `
     <div class="gallery-card">
-      <div class="gallery-img-wrap" onclick="openImgModal('${p.url}','${p.title}','${p.desc}')">
-        <img src="${p.url}" alt="${p.title}" onerror="this.src='https://images.unsplash.com/photo-1601134467661-3d775b999c0b?w=500&q=60'">
+      <div class="gallery-img-wrap" onclick="openImgModalById(${year},'${p.id}')">
+        <img src="${esc(p.url)}" alt="${esc(p.title)}" onerror="this.src='https://images.unsplash.com/photo-1601134467661-3d775b999c0b?w=500&q=60'">
         <div class="gallery-badge">${year}</div>
       </div>
       <div class="gallery-body">
-        <h4>${p.title}</h4>
-        <p>${p.desc}</p>
+        <h4>${esc(p.title)}</h4>
+        <p>${esc(p.desc)}</p>
         <div class="gallery-meta">
           <span class="gallery-year-tag">${year} он</span>
-          <div class="gallery-actions">
+          ${editMode ? `<div class="gallery-actions">
             <button class="btn btn-sm btn-danger" onclick="deletePhoto(${year},'${p.id}')"><i class="fa-solid fa-trash-can"></i></button>
-          </div>
+          </div>` : ''}
         </div>
       </div>
     </div>
@@ -1209,12 +1284,12 @@ function buildVideoGrid(year, videos) {
         ${getVideoEmbed(v.url)}
       </div>
       <div class="video-body">
-        <h4>${v.title}</h4>
-        <p>${v.desc}</p>
+        <h4>${esc(v.title)}</h4>
+        <p>${esc(v.desc)}</p>
       </div>
       <div class="video-footer">
         <span class="gallery-year-tag">${year} он</span>
-        <button class="btn btn-sm btn-danger" onclick="deleteVideo(${year},'${v.id}')"><i class="fa-solid fa-trash-can"></i></button>
+        ${editMode ? `<button class="btn btn-sm btn-danger" onclick="deleteVideo(${year},'${v.id}')"><i class="fa-solid fa-trash-can"></i></button>` : ''}
       </div>
     </div>
   `).join('')}</div>`;
@@ -1226,20 +1301,21 @@ function getVideoEmbed(url) {
   if (ytMatch) return `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe>`;
   // Local upload (blob/data URL)
   if (url.startsWith('blob:') || url.startsWith('data:video/')) {
-    return `<video controls><source src="${url}"></video>`;
+    return `<video controls><source src="${esc(url)}"></video>`;
   }
   // MP4
-  if (url.endsWith('.mp4') || url.includes('.mp4')) return `<video controls><source src="${url}" type="video/mp4"></video>`;
-  return `<iframe src="${url}" allowfullscreen></iframe>`;
+  if (url.endsWith('.mp4') || url.includes('.mp4')) return `<video controls><source src="${esc(url)}" type="video/mp4"></video>`;
+  return `<iframe src="${esc(url)}" allowfullscreen></iframe>`;
 }
 
 // ── ADD YEAR ──
-function openAddYearModal() { document.getElementById('addYearModal').classList.add('open'); }
+function openAddYearModal() { if (!editMode) return; document.getElementById('addYearModal').classList.add('open'); }
 function closeYearModal(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('addYearModal') && !e.target.classList.contains('modal-close')) return;
   document.getElementById('addYearModal').classList.remove('open');
 }
 function addYear() {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const y = parseInt(document.getElementById('newYearInput').value);
   const manager = document.getElementById('newManagerInput').value.trim();
   const staff = parseInt(document.getElementById('newStaffInput').value) || 0;
@@ -1259,6 +1335,7 @@ function addYear() {
 
 // ── DELETE YEAR ──
 function deleteYear(year) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   if (!confirm(`${year} оныг устгах уу? Бүх мэдээлэл устна.`)) return;
   delete db.years[year];
   activeYear = 'all';
@@ -1268,9 +1345,10 @@ function deleteYear(year) {
 }
 
 // ── RECORDS ──
-function openAddRecord(year) { document.getElementById(`addRecordForm_${year}`).style.display = 'block'; }
+function openAddRecord(year) { if (!editMode) return; document.getElementById(`addRecordForm_${year}`).style.display = 'block'; }
 function closeAddRecord(year) { document.getElementById(`addRecordForm_${year}`).style.display = 'none'; }
 function saveRecord(year) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const name = document.getElementById(`rName_${year}`).value.trim();
   const value = document.getElementById(`rValue_${year}`).value.trim();
   const unit = document.getElementById(`rUnit_${year}`).value.trim();
@@ -1284,10 +1362,12 @@ function saveRecord(year) {
   [`rName_${year}`,`rValue_${year}`,`rUnit_${year}`].forEach(id => document.getElementById(id).value = '');
 }
 function updateRecord(year, id, field, val) {
+  if (!editMode) return;
   const rec = db.years[year].records.find(r => r.id === id);
   if (rec) { rec[field] = val; autosave(false); toast('Хадгалагдлаа ✓', 'success'); }
 }
 function deleteRecord(year, id) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   db.years[year].records = db.years[year].records.filter(r => r.id !== id);
   document.getElementById(`recordsWrap_${year}`).innerHTML = buildRecordsTable(year, db.years[year].records);
   autosave(false);
@@ -1295,9 +1375,10 @@ function deleteRecord(year, id) {
 }
 
 // ── PHOTOS ──
-function openAddPhoto(year) { document.getElementById(`addPhotoForm_${year}`).style.display = 'block'; }
+function openAddPhoto(year) { if (!editMode) return; document.getElementById(`addPhotoForm_${year}`).style.display = 'block'; }
 function closeAddPhoto(year) { document.getElementById(`addPhotoForm_${year}`).style.display = 'none'; }
 async function savePhoto(year) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const title = document.getElementById(`pTitle_${year}`).value.trim();
   const fileInput = document.getElementById(`pFile_${year}`);
   const file = fileInput.files && fileInput.files[0];
@@ -1321,6 +1402,7 @@ async function savePhoto(year) {
   fileInput.value = '';
 }
 function deletePhoto(year, id) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const target = db.years[year].photos.find(p => p.id === id);
   if (target && typeof target.url === 'string' && target.url.startsWith('blob:')) {
     URL.revokeObjectURL(target.url);
@@ -1332,9 +1414,10 @@ function deletePhoto(year, id) {
 }
 
 // ── VIDEOS ──
-function openAddVideo(year) { document.getElementById(`addVideoForm_${year}`).style.display = 'block'; }
+function openAddVideo(year) { if (!editMode) return; document.getElementById(`addVideoForm_${year}`).style.display = 'block'; }
 function closeAddVideo(year) { document.getElementById(`addVideoForm_${year}`).style.display = 'none'; }
 async function saveVideo(year) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const title = document.getElementById(`vTitle_${year}`).value.trim();
   const fileInput = document.getElementById(`vFile_${year}`);
   const file = fileInput.files && fileInput.files[0];
@@ -1358,6 +1441,7 @@ async function saveVideo(year) {
   fileInput.value = '';
 }
 function deleteVideo(year, id) {
+  if (!editMode) return toast('Засварлах эрхгүй байна', 'error');
   const target = db.years[year].videos.find(v => v.id === id);
   if (target && typeof target.url === 'string' && target.url.startsWith('blob:')) {
     URL.revokeObjectURL(target.url);
@@ -1369,6 +1453,11 @@ function deleteVideo(year, id) {
 }
 
 // ── IMAGE MODAL ──
+function openImgModalById(year, id) {
+  const photo = db.years[year] && db.years[year].photos.find(p => p.id === id);
+  if (!photo) return;
+  openImgModal(photo.url, photo.title, photo.desc);
+}
 function openImgModal(url, title, desc) {
   document.getElementById('modalImg').src = url;
   document.getElementById('modalTitle').textContent = title;
@@ -1393,6 +1482,7 @@ function toast(msg, type = 'success') {
 
 // ── INIT ──
 loadSaved();
+applyEditModeUI();
 render();
 </script>
 </body>
