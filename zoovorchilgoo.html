@@ -385,6 +385,174 @@
             transition: all 0.3s ease;
         }
 
+        .name-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 240px;
+            flex: 1 1 300px;
+        }
+
+        .name-selector-head {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .name-selector-head input {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .name-selector-head button {
+            flex: 0 0 auto;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #10b981 0%, #2563eb 100%);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .name-selector-head button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+        }
+
+        .name-selector-head .name-add-hint {
+            display: none;
+        }
+
+        .name-selector-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: #475569;
+            font-weight: 700;
+            padding: 0 2px;
+        }
+
+        .name-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            max-height: 180px;
+            overflow: auto;
+        }
+
+        .name-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid transparent;
+            color: #0f172a;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .name-option:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+        }
+
+        .name-option input {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+            accent-color: #2563eb;
+            flex: 0 0 auto;
+        }
+
+        .name-option-body {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+
+        .name-option-text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .name-option-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .name-option-action {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 7px;
+            background: #e2e8f0;
+            color: #0f172a;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+            flex: 0 0 auto;
+        }
+
+        .name-option-action:hover {
+            transform: translateY(-1px);
+        }
+
+        .name-option-action.edit {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .name-option-action.delete {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .name-option.is-selected {
+            background: #dbeafe;
+            border-color: #60a5fa;
+        }
+
+        .name-options-empty {
+            grid-column: 1 / -1;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px dashed #94a3b8;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .name-options-empty strong {
+            color: #0f172a;
+        }
+
+        .name-selector-summary {
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
         .worker-form input:focus {
             outline: none;
             border-color: #667eea;
@@ -421,10 +589,6 @@
         }
 
         #worker-list li {
-                    #worker-list li .worker-name {
-                        color: #625c5c;
-                        font-weight: 900;
-                    }
             background: linear-gradient(135deg, #464b4e 0%, #4e6b89 100%);
             margin: 8px 0;
             padding: 15px;
@@ -928,7 +1092,17 @@
                 <div class="worker-form">
                     <input type="text" id="job" placeholder="Ажлын нэр">
                     <input type="text" id="rank" placeholder="Зэрэг">
-                    <input type="text" id="name" placeholder="Ажилтаны нэр">
+                    <div class="name-selector">
+                        <div class="name-selector-head">
+                            <input type="text" id="nameSearch" placeholder="Нэр шүүж эсвэл шинэ нэр бичих">
+                            <button type="button" id="addNameOption">Нэмэх</button>
+                        </div>
+                        <div class="name-selector-meta">
+                            <span>Товшиж сонгох</span>
+                            <span id="nameSelectionSummary" class="name-selector-summary">0 сонгогдсон</span>
+                        </div>
+                        <div id="nameOptions" class="name-options"></div>
+                    </div>
                     <button id="add-worker">+ Ажилтан нэмэх</button>
                 </div>
                 <ul id="worker-list"></ul>
@@ -981,13 +1155,240 @@
             const restrictionBox = document.querySelectorAll(".video-box")[1];
             const jobInput = document.getElementById("job");
             const rankInput = document.getElementById("rank");
-            const nameInput = document.getElementById("name");
+            const nameSearchInput = document.getElementById("nameSearch");
+            const addNameOptionBtn = document.getElementById("addNameOption");
+            const nameOptions = document.getElementById("nameOptions");
+            const nameSelectionSummary = document.getElementById("nameSelectionSummary");
             const workTypeSelect = document.getElementById("workType");
             const workTypeSizer = document.getElementById("workTypeSizer");
             const savedRecordsContainer = document.getElementById("savedRecordsContainer");
             const savedRecordsList = document.getElementById("savedRecordsList");
             const STORAGE_KEY = "ubtz_daily_instruction_records_v1";
+            const NAME_DIRECTORY_KEY = "ubtz_employee_names_v1";
             let savedRecords = [];
+            let employeeNames = [];
+            let selectedNames = new Set();
+
+        function normalizeName(value) {
+            return value ? value.trim().replace(/\s+/g, " ") : "";
+        }
+
+        function persistEmployeeNames() {
+            localStorage.setItem(NAME_DIRECTORY_KEY, JSON.stringify(employeeNames));
+        }
+
+        function loadEmployeeNames() {
+            try {
+                const raw = localStorage.getItem(NAME_DIRECTORY_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        employeeNames = parsed.map(normalizeName).filter(Boolean);
+                        return;
+                    }
+                }
+
+                const seededNames = [];
+                savedRecords.forEach((record) => {
+                    if (!record || !Array.isArray(record.workers)) {
+                        return;
+                    }
+                    record.workers.forEach((worker) => {
+                        const normalized = normalizeName(worker && worker.name);
+                        if (normalized) {
+                            seededNames.push(normalized);
+                        }
+                    });
+                });
+                employeeNames = Array.from(new Set(seededNames)).sort((left, right) => left.localeCompare(right, "mn"));
+                persistEmployeeNames();
+            } catch (error) {
+                console.error("Employee names load error:", error);
+                employeeNames = [];
+            }
+        }
+
+        function setEmployeeNames(nextNames) {
+            employeeNames = Array.from(new Set(nextNames.map(normalizeName).filter(Boolean))).sort((left, right) => left.localeCompare(right, "mn"));
+            persistEmployeeNames();
+            renderNameOptions();
+        }
+
+        function addEmployeeName(name) {
+            const normalized = normalizeName(name);
+            if (!normalized) {
+                return false;
+            }
+
+            if (!employeeNames.includes(normalized)) {
+                employeeNames.push(normalized);
+                employeeNames.sort((left, right) => left.localeCompare(right, "mn"));
+                persistEmployeeNames();
+            }
+
+            selectedNames.add(normalized);
+            renderNameOptions();
+            return true;
+        }
+
+        function editEmployeeName(oldName) {
+            const nextName = normalizeName(window.prompt("Нэрийг засах", oldName));
+            if (!nextName) {
+                return;
+            }
+
+            if (nextName === oldName) {
+                return;
+            }
+
+            if (employeeNames.includes(nextName)) {
+                alert("Энэ нэр аль хэдийн байна!");
+                return;
+            }
+
+            employeeNames = employeeNames.map((name) => (name === oldName ? nextName : name));
+            if (selectedNames.has(oldName)) {
+                selectedNames.delete(oldName);
+                selectedNames.add(nextName);
+            }
+            persistEmployeeNames();
+            renderNameOptions();
+        }
+
+        function deleteEmployeeName(name) {
+            const confirmed = window.confirm(`"${name}" нэрийг устгах уу?`);
+            if (!confirmed) {
+                return;
+            }
+
+            employeeNames = employeeNames.filter((item) => item !== name);
+            selectedNames.delete(name);
+            persistEmployeeNames();
+            renderNameOptions();
+        }
+
+        function getKnownNames() {
+            return [...employeeNames];
+        }
+
+        function updateNameSelectionSummary() {
+            if (!nameSelectionSummary) {
+                return;
+            }
+
+            nameSelectionSummary.textContent = `${selectedNames.size} сонгогдсон`;
+        }
+
+        function renderNameOptions() {
+            if (!nameOptions) {
+                return;
+            }
+
+            const query = normalizeName(nameSearchInput ? nameSearchInput.value : "").toLowerCase();
+            const knownNames = getKnownNames().filter((name) => {
+                if (!query) {
+                    return true;
+                }
+                return name.toLowerCase().includes(query);
+            });
+
+            nameOptions.innerHTML = "";
+
+            if (knownNames.length === 0) {
+                const emptyState = document.createElement("div");
+                emptyState.className = "name-options-empty";
+                emptyState.innerHTML = query
+                    ? `<strong>${nameSearchInput.value}</strong> нэр олдсонгүй`
+                    : "Хадгалсан нэр алга. Эхний нэрийг дээрх талбараар нэмнэ үү.";
+                nameOptions.appendChild(emptyState);
+                updateNameSelectionSummary();
+                return;
+            }
+
+            knownNames.forEach((name, index) => {
+                const optionId = `name-option-${index}`;
+                const label = document.createElement("label");
+                label.className = "name-option";
+                if (selectedNames.has(name)) {
+                    label.classList.add("is-selected");
+                }
+
+                label.setAttribute("for", optionId);
+
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.id = optionId;
+                checkbox.value = name;
+                checkbox.checked = selectedNames.has(name);
+
+                checkbox.addEventListener("change", function () {
+                    if (checkbox.checked) {
+                        selectedNames.add(name);
+                        label.classList.add("is-selected");
+                    } else {
+                        selectedNames.delete(name);
+                        label.classList.remove("is-selected");
+                    }
+                    updateNameSelectionSummary();
+                });
+
+                const body = document.createElement("span");
+                body.className = "name-option-body";
+
+                const text = document.createElement("span");
+                text.className = "name-option-text";
+                text.textContent = name;
+
+                const actions = document.createElement("span");
+                actions.className = "name-option-actions";
+
+                const editBtn = document.createElement("button");
+                editBtn.type = "button";
+                editBtn.className = "name-option-action edit";
+                editBtn.title = "Засах";
+                editBtn.innerHTML = '<i class="fa fa-pen"></i>';
+                editBtn.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    editEmployeeName(name);
+                });
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.type = "button";
+                deleteBtn.className = "name-option-action delete";
+                deleteBtn.title = "Устгах";
+                deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
+                deleteBtn.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    deleteEmployeeName(name);
+                });
+
+                actions.appendChild(editBtn);
+                actions.appendChild(deleteBtn);
+                body.appendChild(text);
+                body.appendChild(actions);
+
+                label.appendChild(checkbox);
+                label.appendChild(body);
+                nameOptions.appendChild(label);
+            });
+
+            updateNameSelectionSummary();
+        }
+
+        function seedNameFromInput() {
+            const newName = normalizeName(nameSearchInput ? nameSearchInput.value : "");
+            if (!newName) {
+                return;
+            }
+
+            addEmployeeName(newName);
+            if (nameSearchInput) {
+                nameSearchInput.value = "";
+            }
+            renderNameOptions();
+        }
 
         function updateWorkTypeWidth() {
             if (!workTypeSelect || !workTypeSizer) {
@@ -1211,48 +1612,87 @@
         function handleAddWorker() {
             const job = jobInput.value.trim();
             const rank = rankInput.value.trim();
-            const name = nameInput.value.trim();
+            const selectedWorkerNames = Array.from(selectedNames);
+            const typedName = normalizeName(nameSearchInput ? nameSearchInput.value : "");
+            const namesToAdd = selectedWorkerNames.length > 0 ? selectedWorkerNames : (typedName ? [typedName] : []);
 
-            if (job && rank && name) {
-                const existingWorkers = workerList.getElementsByTagName("li");
-                for (let worker of existingWorkers) {
-                    if (worker.dataset.name === name) {
-                        alert(`${name} аль хэдийн жагсаалтад байна!`);
+            if (job && rank && namesToAdd.length > 0) {
+                const existingWorkerNames = new Set(
+                    Array.from(workerList.querySelectorAll("li[data-name]"))
+                        .map((item) => normalizeName(item.dataset.name))
+                        .filter(Boolean)
+                );
+
+                const skippedNames = [];
+                const addedNames = [];
+
+                namesToAdd.forEach((name) => {
+                    if (existingWorkerNames.has(name)) {
+                        skippedNames.push(name);
                         return;
                     }
-                }
 
-                const listItem = document.createElement("li");
-                listItem.innerHTML = `<span><span class="worker-name">${name}</span> - ${job} (${rank}-р зэрэг)</span>`;
-                listItem.dataset.name = name;
-                listItem.dataset.job = job;
-                listItem.dataset.rank = rank;
+                    const listItem = document.createElement("li");
+                    listItem.innerHTML = `<span><span class="worker-name">${name}</span> - ${job} (${rank}-р зэрэг)</span>`;
+                    listItem.dataset.name = name;
+                    listItem.dataset.job = job;
+                    listItem.dataset.rank = rank;
 
-                const deleteBtn = document.createElement("button");
-                deleteBtn.textContent = "✖ Устгах";
-                deleteBtn.classList.add("delete-btn");
-                deleteBtn.addEventListener("click", function () {
-                    listItem.style.animation = "slideOut 0.3s ease-out";
-                    setTimeout(() => {
-                        workerList.removeChild(listItem);
-                    }, 300);
+                    const deleteBtn = document.createElement("button");
+                    deleteBtn.textContent = "✖ Устгах";
+                    deleteBtn.classList.add("delete-btn");
+                    deleteBtn.addEventListener("click", function () {
+                        listItem.style.animation = "slideOut 0.3s ease-out";
+                        setTimeout(() => {
+                            workerList.removeChild(listItem);
+                            renderNameOptions();
+                        }, 300);
+                    });
+
+                    listItem.appendChild(deleteBtn);
+                    workerList.appendChild(listItem);
+                    existingWorkerNames.add(name);
+                    addedNames.push(name);
                 });
 
-                listItem.appendChild(deleteBtn);
-                workerList.appendChild(listItem);
+                if (addedNames.length === 0) {
+                    alert(skippedNames.length > 0
+                        ? `${skippedNames.join(", ")} аль хэдийн жагсаалтад байна!`
+                        : "Сонгосон нэр олдсонгүй!");
+                    return;
+                }
 
                 jobInput.value = "";
                 rankInput.value = "";
-                nameInput.value = "";
+                if (nameSearchInput) {
+                    nameSearchInput.value = "";
+                }
+                selectedNames.clear();
+                updateNameSelectionSummary();
+                renderNameOptions();
                 jobInput.focus();
             } else {
-                alert("Бүх талбарыг бөглөнө үү!");
+                alert("Бүх талбарыг бөглөж, дор хаяж нэг нэр сонгоно уу!");
             }
         }
 
         addWorkerBtn.addEventListener("click", handleAddWorker);
 
-        [jobInput, rankInput, nameInput].forEach((input) => {
+        if (addNameOptionBtn) {
+            addNameOptionBtn.addEventListener("click", seedNameFromInput);
+        }
+
+        if (nameSearchInput) {
+            nameSearchInput.addEventListener("input", renderNameOptions);
+            nameSearchInput.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    seedNameFromInput();
+                }
+            });
+        }
+
+        [jobInput, rankInput].forEach((input) => {
             input.addEventListener("keydown", function (event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
@@ -1404,6 +1844,11 @@
             document.getElementById('meter2').value = '';
             
             workerList.innerHTML = '';
+            selectedNames.clear();
+            if (nameSearchInput) {
+                nameSearchInput.value = '';
+            }
+            renderNameOptions();
         }
 
         const savePdfBtn = document.getElementById('savePdfBtn');
@@ -1456,6 +1901,8 @@
         }
 
         loadSavedRecords();
+        loadEmployeeNames();
         displaySavedRecords();
+        renderNameOptions();
     });
 </script>

@@ -882,8 +882,21 @@
         <a href="#" class="sidebar-link" id="irts-link" data-page-key="Ирц бүртгэл"><i class="fa fa-calendar-check"></i> Ирц бүртгэл</a>
       </div>
 
-      <div class="sidebar-item">
-          <a href="#" class="sidebar-link" id="zoovorchilgoo-link" data-page-key="Өдөр тутмын зааварчилгаа"><i class="fa fa-book-open"></i> Зааварчилгаа</a>
+      <div class="sidebar-item has-sub" onclick="toggleSub(this)">
+        <div class="sidebar-link"><i class="fa fa-book-open"></i> Зааварчилгаа</div>
+        <div class="sidebar-sub">
+          <a href="#" id="zoovorchilgoo-link" data-page-key="Зааварчилгаа / Зам засвар">Зам засвар</a>
+          <a href="#" data-page-key="Зааварчилгаа / Тор засагч">Тор засагч</a>
+          <a href="#" data-page-key="Зааварчилгаа / Үерийн эргүүл">Үерийн эргүүл</a>
+          <a href="#" data-page-key="Зааварчилгаа / Ажил удирдагч">Ажил удирдагч</a>
+          <a href="#" data-page-key="Зааварчилгаа / Зам сум цэвэрлэгч">Зам сум цэвэрлэгч</a>
+          <a href="#" data-page-key="Зааварчилгаа / Жолооч">Жолооч</a>
+          <a href="#" data-page-key="Зааварчилгаа / Сахиул">Сахиул</a>
+          <a href="#" data-page-key="Зааварчилгаа / Гармын жижүүр">Гармын жижүүр</a>
+          <a href="#" data-page-key="Зааварчилгаа / Сэвийн оператор">Сэвийн оператор</a>
+          <a href="#" data-page-key="Зааварчилгаа / Тогооч">Тогооч</a>
+          <a href="#" data-page-key="Зааварчилгаа / Ээлжит давтан">Ээлжит давтан</a>
+        </div>
       </div>
 
       <div class="sidebar-item">
@@ -1003,6 +1016,7 @@
   const staticPageFallbacks = {
       'Ирц бүртгэл': 'irts.html',
     'Өдөр тутмын зааварчилгаа': 'zoovorchilgoo.html',
+    'Зааварчилгаа / Зам засвар': 'zoovorchilgoo.html',
     'Цахилгаан': 'tsahilgaan.html',
     'Төлөвлөгөө / Сарын ажлын төлөвлөгөө': 'sariin.html',
     'Шийдвэр': 'shiidwer.html',
