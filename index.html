@@ -247,6 +247,45 @@
       font-size: var(--topbar-font-size);
       color: var(--text-muted);
     }
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-glow);
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .mode-badge.editable {
+      border-color: rgba(9,243,114,0.35);
+      background: rgba(9,243,114,0.12);
+      color: #baffdb;
+    }
+    .mode-badge.readonly {
+      border-color: rgba(255,159,67,0.35);
+      background: rgba(255,159,67,0.12);
+      color: #ffe0ba;
+    }
+    .auth-btn {
+      border: 1px solid var(--border-glow);
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--text-primary);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .auth-btn:hover {
+      background: rgba(0, 212, 255, 0.16);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
     .status-dot {
       width: 7px; height: 7px;
       border-radius: 50%;
@@ -858,6 +897,8 @@
     </ul>
 
     <div class="topbar-status">
+      <div class="mode-badge readonly" id="editModeBadge"><i class="fa fa-eye"></i><span>Харах горим</span></div>
+      <button class="auth-btn" id="editModeButton" type="button">Кодоор нэвтрэх</button>
       <div class="status-badge">
         <div class="status-dot"></div>
         <span>ОНЛАЙН</span>
@@ -907,10 +948,6 @@
         <a href="#" class="sidebar-link" id="biechilsen-link" data-page-key="Биечилсэн үзлэг"><i class="fa fa-search"></i> Зам шалгалт</a>
       </div>
 
-      <div class="sidebar-item">
-          <a href="#" class="sidebar-link" id="graph-link" data-page-key="Галт тэрэгний график"><i class="fa fa-train"></i> Галт тэрэгний график</a>
-      </div>
-
       <div class="sidebar-divider"></div>
 
       <div class="sidebar-item">
@@ -933,16 +970,6 @@
         <a href="#" class="sidebar-link" id="habea-link" data-page-key="ХАБЭА-н үзлэг"><i class="fa fa-layer-group"></i>ХАБЭА-н үзлэг</a>
       </div>
 
-      <div class="sidebar-item has-sub" onclick="toggleSub(this)">
-        <div class="sidebar-link"><i class="fa fa-graduation-cap"></i> Сургалт, технологи</div>
-        <div class="sidebar-sub">
-          <a href="#" id="gal-link" data-page-key="Галын аюулаас урьдчилан сэргийлэх">Сургалтын цэс</a>
-          <a href="#" id="shalgalt-link" data-page-key="Шалгалт">Шалгалт</a>
-        </div>
-      </div>
-
-      <div class="sidebar-divider"></div>
-
       <div class="sidebar-item">
           <a href="#" class="sidebar-link" id="hatyy-link" data-page-key="Хатуу тооцоот багаж"><i class="fa fa-toolbox"></i> Хатуу тооцоот багаж</a>
       </div>
@@ -957,9 +984,6 @@
       </div>
       <div class="sidebar-item">
         <a href="#" class="sidebar-link" id="heseg-link" data-page-key="Хэсгийн танилцуулга"><i class="fa fa-id-card"></i> Хэсгийн танилцуулга</a>
-      </div>
-      <div class="sidebar-item">
-        <a href="#" class="sidebar-link" id="shbaz-link" data-page-key="ШБАЗ"><i class="fa fa-folder-open"></i> ШБАЗ</a>
       </div>
         <div class="sidebar-item">
           <a href="#" class="sidebar-link" id="ai-link" data-page-key="AI туслах"><i class="fa fa-robot"></i> AI туслах</a>
@@ -992,10 +1016,170 @@
 
 <script>
   let pageMap = {};
+  const EDIT_ACCESS_CODE = '8#4729@15';
   const UI_STORAGE_KEYS = {
-    lastPage: 'ubtz:index:last-page'
+    lastPage: 'ubtz:index:last-page',
+    editMode: 'ubtz:index:edit-mode'
   };
   const FRAME_STORAGE_PREFIX = 'ubtz:autosave:';
+
+  function readEditMode() {
+    try {
+      return sessionStorage.getItem(UI_STORAGE_KEYS.editMode) === 'true';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function writeEditMode(isEditable) {
+    try {
+      sessionStorage.setItem(UI_STORAGE_KEYS.editMode, isEditable ? 'true' : 'false');
+    } catch (error) {
+      console.warn('Edit mode state write failed:', error);
+    }
+  }
+
+  function updateEditModeUi() {
+    const badge = document.getElementById('editModeBadge');
+    const button = document.getElementById('editModeButton');
+    const editable = readEditMode();
+    if (badge) {
+      badge.classList.toggle('editable', editable);
+      badge.classList.toggle('readonly', !editable);
+      badge.innerHTML = editable
+        ? '<i class="fa fa-pen-to-square"></i><span>Засварлах горим</span>'
+        : '<i class="fa fa-eye"></i><span>Харах горим</span>';
+    }
+    if (button) {
+      button.textContent = editable ? 'Гарах' : 'Кодоор нэвтрэх';
+    }
+  }
+
+  function setElementEditability(element, editable) {
+    if (!(element instanceof element.ownerDocument.defaultView.HTMLElement)) {
+      return;
+    }
+
+    if (editable) {
+      if (element.dataset.viewModeDisabled === 'true') {
+        element.disabled = false;
+        delete element.dataset.viewModeDisabled;
+      }
+      if (element.dataset.viewModeReadonly === 'true') {
+        element.readOnly = false;
+        delete element.dataset.viewModeReadonly;
+      }
+      if (element.dataset.viewModeContenteditable === 'true') {
+        element.contentEditable = 'true';
+        delete element.dataset.viewModeContenteditable;
+      }
+      return;
+    }
+
+    if (element.matches('input, textarea')) {
+      if (!element.readOnly) {
+        element.readOnly = true;
+        element.dataset.viewModeReadonly = 'true';
+      }
+      return;
+    }
+
+    if (element.matches('select, button')) {
+      if (!element.disabled) {
+        element.disabled = true;
+        element.dataset.viewModeDisabled = 'true';
+      }
+      return;
+    }
+
+    if (element.isContentEditable) {
+      element.contentEditable = 'false';
+      element.dataset.viewModeContenteditable = 'true';
+    }
+  }
+
+  function applyFrameAccessMode(frame) {
+    try {
+      const doc = frame && frame.contentDocument;
+      if (!doc || !doc.body) {
+        return;
+      }
+
+      const editable = readEditMode();
+      doc.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
+        setElementEditability(element, editable);
+      });
+    } catch (error) {
+      console.warn('Frame access mode skipped:', error);
+    }
+  }
+
+  function setupFrameAccessControl(frame) {
+    try {
+      const doc = frame.contentDocument;
+      if (!doc || !doc.body) {
+        return;
+      }
+
+      applyFrameAccessMode(frame);
+
+      if (frame._accessModeObserver) {
+        frame._accessModeObserver.disconnect();
+      }
+
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType !== 1) {
+              return;
+            }
+            if (node.matches && node.matches('input, textarea, select, button, [contenteditable="true"]')) {
+              setElementEditability(node, readEditMode());
+            }
+            if (node.querySelectorAll) {
+              node.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
+                setElementEditability(element, readEditMode());
+              });
+            }
+          });
+        });
+      });
+      observer.observe(doc.body, { childList: true, subtree: true });
+      frame._accessModeObserver = observer;
+    } catch (error) {
+      console.warn('Frame access control binding skipped:', error);
+    }
+  }
+
+  function refreshCurrentFrameAccessMode() {
+    const frame = document.getElementById('content-frame');
+    if (frame) {
+      applyFrameAccessMode(frame);
+    }
+    updateEditModeUi();
+  }
+
+  function handleEditModeButton() {
+    if (readEditMode()) {
+      writeEditMode(false);
+      refreshCurrentFrameAccessMode();
+      return;
+    }
+
+    const code = prompt('Засварлах код оруулна уу:');
+    if (code === null) {
+      return;
+    }
+
+    if (code === EDIT_ACCESS_CODE) {
+      writeEditMode(true);
+      refreshCurrentFrameAccessMode();
+      alert('Засварлах горим идэвхжлээ.');
+      return;
+    }
+
+    alert('Код буруу байна. Харах горим хэвээр үлдлээ.');
+  }
 
   function readLastPage() {
     try {
@@ -1022,18 +1206,14 @@
     'Шийдвэр': 'shiidwer.html',
     'Үүрэг даалгавар': 'ita.html',
     'Биечилсэн үзлэг': 'biychilsen.html',
-    'Галт тэрэгний график': 'graph.html',
     'Менежментийн нэгдсэн тогтолцоо': 'anhaar.html',
     'Ажилтануудын мэдээлэл': 'ajiltan.html',
     'Суман шилжүүлгийн бүртгэл': 'sum.html',
     'ХАБЭА-н үзлэг': 'habea.html',
-    'Галын аюулаас урьдчилан сэргийлэх': 'gal.html',
-    'Шалгалт': 'shalgalt.html',
     'Хатуу тооцоот багаж': 'hatyy-delgets.html',
     'Паспортын үзлэг': 'passport.html',
     'Замын техникийн байдал': 'tech.html',
     'Хэсгийн танилцуулга': 'heseg.html',
-    'ШБАЗ': 'shbaz.html',
     'Бүртгэл': 'bvrtgel.html'
   };
 
@@ -1359,6 +1539,7 @@
       if (!autosaveDisabled) {
         setupFrameAutosave(doc, getAutosaveStorageKey(frame));
       }
+      setupFrameAccessControl(frame);
     } catch (error) {
       console.warn('Frame enhancements skipped:', error);
     }
@@ -1448,6 +1629,9 @@
     const frame = document.getElementById('content-frame');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const editModeButton = document.getElementById('editModeButton');
+
+    updateEditModeUi();
 
     if (frame) {
       frame.addEventListener('load', function() {
@@ -1464,6 +1648,10 @@
 
     if (sidebarOverlay) {
       sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    if (editModeButton) {
+      editModeButton.addEventListener('click', handleEditModeButton);
     }
 
     document.addEventListener('keydown', function(event) {
