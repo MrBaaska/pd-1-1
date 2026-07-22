@@ -31,7 +31,7 @@
       --shell-gap: clamp(12px, 2vw, 24px);
       --shell-pad: clamp(12px, 2vw, 28px);
       --sidebar-width: 320px;
-      --frame-min-height: clamp(520px, calc(100dvh - 168px), 980px);
+      --frame-min-height: calc(100dvh - var(--topbar-height) - (var(--shell-gap) * 2));
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -1000,7 +1000,7 @@
           <div class="frame-dot" style="background:#27c93f"></div>
           <span id="frame-title-label" style="margin-left:8px; font-family:'Share Tech Mono',monospace; font-size:11px;">ХЭСГИЙН ТАНИЛЦУУЛГА</span>
         </div>
-        <iframe id="content-frame" src="./heseg.html" frameborder="0" style="width:100%;" allow="camera *; microphone *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; fullscreen *"></iframe>
+        <iframe id="content-frame" src="./heseg.html" frameborder="0" allow="camera *; microphone *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; fullscreen *"></iframe>
       </div>
     </div>
   </main>
@@ -1097,6 +1097,11 @@
     try {
       const doc = frame && frame.contentDocument;
       if (!doc || !doc.body) {
+        return;
+      }
+
+      const frameSrc = String(frame.getAttribute('src') || frame.src || '').toLowerCase();
+      if (frameSrc.includes('bvrtgel.html')) {
         return;
       }
 

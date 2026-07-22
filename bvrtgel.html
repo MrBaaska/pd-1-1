@@ -280,24 +280,60 @@
   .session-card:hover{box-shadow:0 6px 16px rgba(21,27,51,.08);}
   .session-card .session-head{
     display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
-    gap:10px;
-    padding:14px 18px;
+    gap:12px;
+    padding:15px 18px;
     background:#f7f8fd;
     border-bottom:1px solid var(--rail-line);
     cursor:pointer;
   }
+  .session-head .title-block{display:grid;gap:4px;}
   .session-head .title-block .t{font-weight:700;color:var(--rail-navy);font-size:1rem;}
-  .session-head .title-block .s{font-size:.8rem;color:var(--rail-muted);}
-  .session-head .meta-chips .chip{
-    font-size:.76rem;font-weight:600;padding:4px 10px;border-radius:20px;margin-left:6px;
+  .session-head .title-block .s{font-size:.82rem;color:var(--rail-muted);}
+  .session-head-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .session-head-actions .chip{
+    font-size:.76rem;
+    font-weight:600;
+    padding:4px 10px;
+    border-radius:20px;
   }
   .chip-total{background:#eef0ff;color:var(--rail-navy);}
   .chip-ok{background:#e5f7ee;color:var(--rail-green);}
   .chip-warn{background:#fdeeee;color:var(--rail-red);}
   .session-body table{margin:0;}
+  .session-body .history-entries-table thead th{
+    font-size:.7rem;
+    padding:10px 10px;
+  }
+  .session-body .history-entries-table tbody td{
+    padding:9px 10px;
+  }
+  .session-body .history-entries-table tbody td:nth-child(1),
+  .session-body .history-entries-table tbody td:nth-child(5),
+  .session-body .history-entries-table tbody td:nth-child(6){
+    text-align:center;
+    white-space:nowrap;
+  }
   .session-body{max-height:0;overflow:hidden;transition:max-height .25s ease;}
   .session-body.open{max-height:2000px;}
-  .toggle-btn{background:none;border:none;color:var(--rail-navy);font-size:1rem;}
+  .toggle-btn{
+    background:none;
+    border:none;
+    color:var(--rail-navy);
+    font-size:1rem;
+    width:30px;
+    height:30px;
+    border-radius:8px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .toggle-btn:hover{background:#e9ecfb;}
   .toggle-btn i.chev{transition:transform .2s ease;}
   .session-card.open .toggle-btn i.chev{transform:rotate(180deg);}
 
@@ -425,14 +461,11 @@
           <thead>
             <tr>
               <th style="width:34px;"><input type="checkbox" id="checkAll" onclick="toggleAll(this)"></th>
-              <th style="width:40px;">№</th>
-              <th>Ажилтны нэр</th>
-              <th>Эрүүл мэнд хэвийн эсэх</th>
-              <th>Хамгаалах хэрэгсэл бүрэн эсэх</th>
-              <th>Ажлын хувцас бүрэн өмссөн эсэх</th>
-              <th>Бусад тайлбар</th>
-              <th style="width:110px;">Огноо / Цаг</th>
-              <th style="width:120px;">Төлөв</th>
+              <th style="width:40px; text-align: center">№</th>
+              <th style="text-align: center;">Ажилтны нэр</th>
+              <th style="text-align: center;">тайлбар</th>
+              <th style="width:110px; text-align: center">Бүртгэл</th>
+              <th style="width:120px; text-align: center">гарын үсэг</th>
               <th style="width:44px;"></th>
             </tr>
           </thead>
@@ -460,6 +493,8 @@
 
 <script>
   const MN_WEEKDAYS = ['Ням','Даваа','Мягмар','Лхагва','Пүрэв','Баасан','Бямба'];
+  const EMPLOYEE_TAB_CODE = 'Baaska@2026';
+  const EMPLOYEE_TAB_ACCESS_KEY = 'employeeTabAccessGranted';
 
   function todayKey(d = new Date()){
     return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
@@ -488,7 +523,28 @@
   }
 
   // ---------- Tabs ----------
+  function hasEmployeeTabAccess(){
+    return sessionStorage.getItem(EMPLOYEE_TAB_ACCESS_KEY) === '1';
+  }
+
+  function requestEmployeeTabAccess(){
+    const code = prompt('Бүртгэлтэй ажилтан цэсийн код оруулна уу:');
+    if (code === null) {
+      return false;
+    }
+    if (String(code).trim() === EMPLOYEE_TAB_CODE) {
+      sessionStorage.setItem(EMPLOYEE_TAB_ACCESS_KEY, '1');
+      showToast('Бүртгэлтэй ажилтан цэс нээгдлээ', 'ok');
+      return true;
+    }
+    showToast('Код буруу байна', 'warn');
+    return false;
+  }
+
   function switchTab(name){
+    if (name === 'employees' && !hasEmployeeTabAccess() && !requestEmployeeTabAccess()) {
+      return;
+    }
     document.querySelectorAll('.rail-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('pane-' + name).classList.add('active');
@@ -556,7 +612,7 @@
   function renderTable(){
     tableBody.innerHTML = '';
     if (currentEntries.length === 0){
-      tableBody.innerHTML = `<tr class="empty-row"><td colspan="10"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Одоогоор бүртгэгдсэн хүн алга. QR уншуулах эсвэл гараар нэмнэ үү.</td></tr>`;
+      tableBody.innerHTML = `<tr class="empty-row"><td colspan="7"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Одоогоор бүртгэгдсэн хүн алга. QR уншуулах эсвэл гараар нэмнэ үү.</td></tr>`;
     } else {
       currentEntries.forEach((rec, index) => {
         const verified = isEntryVerified(rec);
@@ -565,24 +621,6 @@
             <td><input type="checkbox" class="row-check" data-idx="${index}"></td>
             <td>${index + 1}</td>
             <td class="fw-semibold">${escapeHtml(rec.name)}</td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateField(${index},'health',this.value)">
-                <option ${rec.health==='Тийм'?'selected':''}>Тийм</option>
-                <option ${rec.health==='Үгүй'?'selected':''}>Үгүй</option>
-              </select>
-            </td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateField(${index},'equipment',this.value)">
-                <option ${rec.equipment==='Тийм'?'selected':''}>Тийм</option>
-                <option ${rec.equipment==='Үгүй'?'selected':''}>Үгүй</option>
-              </select>
-            </td>
-            <td>
-              <select class="form-select form-select-sm" onchange="updateField(${index},'uniform',this.value)">
-                <option ${rec.uniform==='Тийм'?'selected':''}>Тийм</option>
-                <option ${rec.uniform==='Үгүй'?'selected':''}>Үгүй</option>
-              </select>
-            </td>
             <td>
               <input type="text" class="form-control form-control-sm" placeholder="Тайлбар..." value="${escapeHtml(rec.remark || '')}" onchange="updateField(${index},'remark',this.value)">
             </td>
@@ -742,7 +780,7 @@
     }
   });
 
-  qrInput.addEventListener('keypress', function(e){
+  qrInput.addEventListener('keydown', function(e){
     if (e.key !== 'Enter') return;
 
     e.preventDefault();
@@ -781,7 +819,7 @@
       showToast(`"${name}" гараар нэмэгдлээ.`, 'ok');
     }
   }
-  manualNameEl.addEventListener('keypress', function(e){
+  manualNameEl.addEventListener('keydown', function(e){
     if (e.key === 'Enter'){
       e.preventDefault();
       addManualEntry();
@@ -927,9 +965,6 @@
             <tr>
               <td>${i+1}</td>
               <td class="fw-semibold">${escapeHtml(e.name)}</td>
-              <td>${e.health}</td>
-              <td>${e.equipment}</td>
-              <td>${e.uniform}</td>
               <td class="small text-muted">${escapeHtml(e.remark) || '—'}</td>
               <td class="small text-muted">${e.time}</td>
               <td>${eOk
@@ -944,13 +979,13 @@
             <div class="session-head" onclick="toggleSession(${s.id})">
               <div class="title-block">
                 <div class="t"><i class="bi bi-clipboard2-check me-1"></i>${escapeHtml(s.training)}</div>
-                <div class="s">Өгсөн ажилтан: ${escapeHtml(s.instructor)} · ${s.time}</div>
+                <div class="s">Зааварчилгаа өгсөн: ${escapeHtml(s.instructor)} · ${s.time}</div>
               </div>
-              <div class="d-flex align-items-center" onclick="event.stopPropagation()">
+              <div class="session-head-actions" onclick="event.stopPropagation()">
                 <span class="chip chip-total">Нийт: ${total}</span>
                 <span class="chip chip-ok">Баталгаажсан: ${ok}</span>
-                <span class="chip chip-warn">Анхаарах: ${warn}</span>
-                <button class="toggle-btn ms-2" onclick="toggleSession(${s.id})" title="Дэлгэрэнгүй">
+                <span class="chip chip-warn">Баталгаажуулаагүй: ${warn}</span>
+                <button class="toggle-btn" onclick="toggleSession(${s.id})" title="Дэлгэрэнгүй">
                   <i class="bi bi-chevron-down chev"></i>
                 </button>
                 <button class="toggle-btn text-danger" onclick="deleteSessionCard(${s.id})" title="Устгах">
@@ -960,14 +995,11 @@
             </div>
             <div class="session-body" id="body-${s.id}">
               <div class="table-responsive">
-                <table class="table rail-table table-bordered mb-0">
+                <table class="table rail-table table-bordered mb-0 history-entries-table">
                   <thead>
                     <tr>
                       <th style="width:40px;">№</th>
                       <th>Ажилтны нэр</th>
-                      <th>Эрүүл мэнд</th>
-                      <th>Хамгаалах хэрэгсэл</th>
-                      <th>Ажлын хувцас</th>
                       <th>Тайлбар</th>
                       <th style="width:80px;">Цаг</th>
                       <th style="width:120px;">Төлөв</th>
@@ -989,5 +1021,6 @@
   renderHistory();
   updateTabCounts();
 </script>
+<script src="employee.js"></script>
 </body>
 </html>
