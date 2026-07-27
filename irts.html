@@ -24,6 +24,7 @@
   --sick:     #f75b5b;
   --absent:   #64748b;
   --leave:    #fbbf24;
+  --rest:     #ec4899;
   --overtime: #a78bfa;
   --vacation: #38bdf8;
   --business: #fb923c;
@@ -190,6 +191,7 @@ body{
 .s-sick::before{background:var(--sick);}
 .s-absent::before{background:var(--absent);}
 .s-leave::before{background:var(--leave);}
+.s-rest::before{background:var(--rest);}
 .s-overtime::before{background:var(--overtime);}
 .s-vacation::before{background:var(--vacation);}
 .s-business::before{background:var(--business);}
@@ -202,6 +204,7 @@ body{
 .s-sick .stat-num{color:var(--sick);}
 .s-absent .stat-num{color:var(--absent);}
 .s-leave .stat-num{color:var(--leave);}
+.s-rest .stat-num{color:var(--rest);}
 .s-overtime .stat-num{color:var(--overtime);}
 .s-vacation .stat-num{color:var(--vacation);}
 .s-business .stat-num{color:var(--business);}
@@ -284,10 +287,12 @@ input[type=date]{font-family:'JetBrains Mono',monospace;}
 .ss-sick    {background:rgba(247,91,91,0.12);color:var(--sick);}
 .ss-absent  {background:rgba(100,116,139,0.18);color:var(--absent);}
 .ss-leave   {background:rgba(251,191,36,0.12);color:var(--leave);}
+.ss-rest    {background:rgba(236,72,153,0.12);color:var(--rest);}
 .ss-overtime{background:rgba(167,139,250,0.12);color:var(--overtime);}
 .ss-vacation{background:rgba(56,189,248,0.12);color:var(--vacation);}
 .ss-business{background:rgba(251,146,60,0.12);color:var(--business);}
 .ss-other   {background:rgba(148,163,184,0.12);color:var(--other);}
+.ss-empty   {background:rgba(138,151,184,0.12);color:var(--text2);}
 
 /* EMPLOYEE ROW */
 .emp-name{font-weight:600;color:var(--text);}
@@ -362,6 +367,7 @@ input[type=date]{font-family:'JetBrains Mono',monospace;}
 .cal-day.d-sick    {background:rgba(247,91,91,0.7);}
 .cal-day.d-absent  {background:rgba(100,116,139,0.5);}
 .cal-day.d-leave   {background:rgba(251,191,36,0.7);}
+.cal-day.d-rest    {background:rgba(236,72,153,0.7);}
 .cal-day.d-overtime{background:rgba(167,139,250,0.7);}
 .cal-day.d-vacation{background:rgba(56,189,248,0.7);}
 .cal-day.d-business{background:rgba(251,146,60,0.7);}
@@ -558,6 +564,7 @@ input[type=date]{font-family:'JetBrains Mono',monospace;}
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--sick)"></div>Өвчтэй</div>
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--absent)"></div>Тасалсан</div>
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--leave)"></div>Чөлөөтэй</div>
+          <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--rest)"></div>Амарсан</div>
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--overtime)"></div>Илүү цаг</div>
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--vacation)"></div>Амралт</div>
           <div class="legend-item" style="display:none"><div class="legend-dot" style="background:var(--business)"></div>Томилолт</div>
@@ -702,15 +709,15 @@ input[type=date]{font-family:'JetBrains Mono',monospace;}
 // ════════════════════════════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════════════════════════════
-const STATUS_LIST   = ["ажилд","өвчтэй","тасалсан","чөлөөтэй","илүү цаг","ээлжийн амралт","томилолт","бусад"];
-const STATUS_LABELS = {"ажилд":"Ажилд","өвчтэй":"Өвчтэй","тасалсан":"Тасалсан","чөлөөтэй":"Чөлөөтэй","илүү цаг":"Илүү цаг","ээлжийн амралт":"Ээлжийн амралт","томилолт":"Томилолт","бусад":"Бусад"};
-const STATUS_KEYS   = ["work","sick","absent","leave","overtime","vacation","business","other"];
-const STATUS_MAP    = {"ажилд":"work","өвчтэй":"sick","тасалсан":"absent","чөлөөтэй":"leave","илүү цаг":"overtime","ээлжийн амралт":"vacation","томилолт":"business","бусад":"other"};
-const STATUS_CSS    = {"ажилд":"ss-work","өвчтэй":"ss-sick","тасалсан":"ss-absent","чөлөөтэй":"ss-leave","илүү цаг":"ss-overtime","ээлжийн амралт":"ss-vacation","томилолт":"ss-business","бусад":"ss-other"};
-const DOT_CSS       = {"ажилд":"d-work","өвчтэй":"d-sick","тасалсан":"d-absent","чөлөөтэй":"d-leave","илүү цаг":"d-overtime","ээлжийн амралт":"d-vacation","томилолт":"d-business","бусад":"d-other"};
-const STAT_COLORS   = {work:"var(--work)",sick:"var(--sick)",absent:"var(--absent)",leave:"var(--leave)",overtime:"var(--overtime)",vacation:"var(--vacation)",business:"var(--business)",other:"var(--other)"};
-const STAT_ICONS    = {work:"✅",sick:"🤒",absent:"🚫",leave:"🏃",overtime:"⏰",vacation:"🏖️",business:"✈️",other:"📌"};
-const STAT_LABELS   = {work:"Ажилд",sick:"Өвчтэй",absent:"Тасалсан",leave:"Чөлөөтэй",overtime:"Илүү цаг",vacation:"Ээлжийн амралт",business:"Томилолт",other:"Бусад"};
+const STATUS_LIST   = ["ажилд","өвчтэй","тасалсан","чөлөөтэй","амарсан","илүү цаг","ээлжийн амралт","томилолт","бусад"];
+const STATUS_LABELS = {"ажилд":"Ажилд","өвчтэй":"Өвчтэй","тасалсан":"Тасалсан","чөлөөтэй":"Чөлөөтэй","амарсан":"Амарсан","илүү цаг":"Илүү цаг","ээлжийн амралт":"Ээлжийн амралт","томилолт":"Томилолт","бусад":"Бусад"};
+const STATUS_KEYS   = ["work","sick","absent","leave","rest","overtime","vacation","business","other"];
+const STATUS_MAP    = {"ажилд":"work","өвчтэй":"sick","тасалсан":"absent","чөлөөтэй":"leave","амарсан":"rest","илүү цаг":"overtime","ээлжийн амралт":"vacation","томилолт":"business","бусад":"other"};
+const STATUS_CSS    = {"ажилд":"ss-work","өвчтэй":"ss-sick","тасалсан":"ss-absent","чөлөөтэй":"ss-leave","амарсан":"ss-rest","илүү цаг":"ss-overtime","ээлжийн амралт":"ss-vacation","томилолт":"ss-business","бусад":"ss-other"};
+const DOT_CSS       = {"ажилд":"d-work","өвчтэй":"d-sick","тасалсан":"d-absent","чөлөөтэй":"d-leave","амарсан":"d-rest","илүү цаг":"d-overtime","ээлжийн амралт":"d-vacation","томилолт":"d-business","бусад":"d-other"};
+const STAT_COLORS   = {work:"var(--work)",sick:"var(--sick)",absent:"var(--absent)",leave:"var(--leave)",rest:"var(--rest)",overtime:"var(--overtime)",vacation:"var(--vacation)",business:"var(--business)",other:"var(--other)"};
+const STAT_ICONS    = {work:"✅",sick:"🤒",absent:"🚫",leave:"🏃",rest:"😴",overtime:"⏰",vacation:"🏖️",business:"✈️",other:"📌"};
+const STAT_LABELS   = {work:"Ажилд",sick:"Өвчтэй",absent:"Тасалсан",leave:"Чөлөөтэй",rest:"Амарсан",overtime:"Илүү цаг",vacation:"Ээлжийн амралт",business:"Томилолт",other:"Бусад"};
 const MONTHS_MN     = ["1-р сар","2-р сар","3-р сар","4-р сар","5-р сар","6-р сар","7-р сар","8-р сар","9-р сар","10-р сар","11-р сар","12-р сар"];
 const DAY_NAMES     = ["Ня","Да","Мя","Лх","Пү","Ба","Бя"];
 
@@ -719,6 +726,7 @@ const SUMMARY_COLS = [
   {key:'өвчтэй',    label:'Өвчтэй',    color:'var(--sick)'},
   {key:'тасалсан',  label:'Тасалсан',  color:'var(--absent)'},
   {key:'чөлөөтэй',  label:'Чөлөөтэй',  color:'var(--leave)'},
+  {key:'амарсан',   label:'Амарсан',   color:'var(--rest)'},
   {key:'илүү цаг',  label:'Илүү цаг',  color:'var(--overtime)'},
   {key:'ээлжийн амралт', label:'Ээлжийн амралт', color:'var(--vacation)'},
   {key:'томилолт',  label:'Томилолт',  color:'var(--business)'},
@@ -889,14 +897,13 @@ function renderDaily(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]){
     attendance[date]={};
-    employees.forEach(e=>{ attendance[date][e.id]='ажилд'; });
     saveAll();
   }
   renderStats(date);
   const tbody=document.getElementById('daily-tbody');
   tbody.innerHTML='';
   employees.forEach((emp,i)=>{
-    const s=attendance[date][emp.id]||'ажилд';
+    const s=attendance[date][emp.id]||'';
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td class="num-badge">${i+1}</td>
@@ -911,7 +918,8 @@ function renderDaily(){
       <td class="num-badge">${emp.experience} жил</td>
       <td><span class="gender-badge ${emp.gender==='Эр'?'gender-m':'gender-f'}">${emp.gender}</span></td>
       <td>
-        <select class="status-select ${STATUS_CSS[s]}" data-id="${emp.id}" onchange="changeStatus(this,'${date}')">
+        <select class="status-select ${STATUS_CSS[s]||'ss-empty'}" data-id="${emp.id}" onchange="changeStatus(this,'${date}')">
+          <option value="" ${s===''?'selected':''}></option>
           ${STATUS_LIST.map(sl=>`<option value="${sl}" ${sl===s?'selected':''}>${STATUS_LABELS[sl]}</option>`).join('')}
         </select>
       </td>
@@ -929,7 +937,7 @@ function renderDaily(){
 function changeStatus(sel, dateStr){
   const id=parseInt(sel.dataset.id);
   const s=sel.value;
-  sel.className='status-select '+STATUS_CSS[s];
+  sel.className='status-select '+(STATUS_CSS[s]||'ss-empty');
   if(!attendance[dateStr]) attendance[dateStr]={};
   attendance[dateStr][id]=s;
   saveAll();
@@ -940,9 +948,6 @@ function changeStatus(sel, dateStr){
 function saveCurrentDay(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]) attendance[date]={};
-  employees.forEach(emp=>{
-    if(!attendance[date][emp.id]) attendance[date][emp.id]='ажилд';
-  });
   saveAll();
   renderStats(date);
   showToast(fmtDate(date)+' өдрийн мэдээлэл хадгалагдлаа');
@@ -1055,19 +1060,27 @@ function renderSummaryTable(){
       td.style.textAlign='center';
       td.style.fontSize='11px';
       td.style.padding='4px 2px';
-      if(isWe){
+      if(isWe && status===''){
         td.style.background='rgba(255,235,0,0.08)';
         td.textContent='';
-      } else if(status==='ажилд'||status===''){
+      } else if(status==='ажилд'){
         td.style.background='rgba(34,211,165,0.08)';
         td.textContent='А';
         td.style.color='var(--work)';
+      } else if(status===''){
+        td.textContent='';
       } else {
         // show first char of status
         const k=STATUS_MAP[status]||'other';
+        const label=STATUS_LABELS[status]||'';
+        if(!label){
+          td.textContent='';
+          tr.appendChild(td);
+          continue;
+        }
         td.style.color=STAT_COLORS[k].replace('var(','').replace(')','');
         td.style.color=STAT_COLORS[k];
-        td.textContent=STATUS_LABELS[status].charAt(0);
+        td.textContent=label.charAt(0);
         if(empStatusCount.hasOwnProperty(status)) empStatusCount[status]++;
       }
       tr.appendChild(td);
@@ -1105,21 +1118,20 @@ function renderSummaryTable(){
     td.style.padding='4px 2px';
     if(isWe){
       td.style.background='rgba(255,235,0,0.08)';
-    } else {
-      let cnt=0;
-      if(attendance[dateStr]){
-        employees.forEach(emp=>{
-          const s=attendance[dateStr][emp.id]||'ажилд';
-          if(s==='ажилд'||s==='илүү цаг') cnt++;
-        });
-      } else {
-        cnt=employees.length;
-      }
-      if(cnt>0){
-        td.style.color='var(--work)';
-        td.style.fontWeight='700';
-        td.textContent=cnt;
-      }
+    }
+    let cnt=0;
+    if(attendance[dateStr]){
+      employees.forEach(emp=>{
+        const s=attendance[dateStr][emp.id]||'';
+        if(s==='ажилд'||s==='илүү цаг') cnt++;
+      });
+    } else if(!isWe) {
+      cnt=employees.length;
+    }
+    if(cnt>0){
+      td.style.color='var(--work)';
+      td.style.fontWeight='700';
+      td.textContent=cnt;
     }
     trTotal.appendChild(td);
   }
@@ -1156,7 +1168,7 @@ function renderSummaryTable(){
       let cnt = 0;
       if (attendance[dateStr]) {
         employees.forEach(emp => {
-          const s = attendance[dateStr][emp.id] || 'ажилд';
+          const s = attendance[dateStr][emp.id] || '';
           if (s === col.key) cnt++;
         });
       }
