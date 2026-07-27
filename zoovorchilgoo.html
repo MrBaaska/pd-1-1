@@ -1233,26 +1233,30 @@
             const RECORDS_STORE_NAME = "app_storage";
             const RECORDS_PRIMARY_KEY = "saved_records";
             const DEFAULT_EMPLOYEE_NAMES = [
-                "пр-1 Б.Бат",
-                "пр-2 Ц.Дорж",
-                "пр-3 Г.Отгон",
-                "пр-4 Г.Нэргүй",
-                "пр-5 Д.Түмэн",
-                "пр-6 С.Баяр",
-                "пр-7 П.Ганбат",
-                "пр-8 Р.Мөнх",
-                "пр-9 Л.Эрдэнэ",
-                "пр-10 Ш.Төгөлдөр",
-                "пр-11 Т.Болор",
-                "пр-12 Н.Энхболд",
-                "пр-13 М.Хишиг",
-                "пр-14 А.Оргил",
-                "пр-15 Х.Сүхбат",
-                "пр-16 Д.Номин",
-                "пр-17 Б.Тэмүүлэн",
-                "пр-18 Г.Уянга",
-                "пр-19 С.Эрдэнэсайхан",
-                "пр-20 Ц.Энхмэнд"
+                "пр-4 Л.Нямлхагва",
+                "пр-4 Э.Энхтөр",
+                "пр-4 Ч.Денесль",
+                "пр-4 М.Оюунбаяр",
+                "пр-3 П.Далай",
+                "пр-3 Г.Ганцэцэг",
+                "пр-3 Л.Отгонбаатар",  
+                "пр-3 Б.Одончимэг",   
+                "пр-3 Э.Энхпүрэв", 
+                "пр-3 Х.Дугармаа", 
+                "пр-3 Б.Түвшингэрэл", 
+                "пр-3 Б.Мөнгөншагай", 
+                "пр-3 Э.Эрдэнэбаяр", 
+                "пр-3 Н.Баттөгс", 
+                "пр-3 Б.БямбаЭрдэнэ", 
+                "пр-3 Г.Тэмүүжин", 
+                "пр-3 Д.Цагаандолгор", 
+                "пр-1 Б.Халиун", 
+                "пр-1 О.Гантөгс", 
+                "С/Ц Б.Дэлгэрмаа",
+                "Т/З Д.ОюунЭрдэнэ", 
+                "Т/З Д.Зоригт", 
+                "Т/З Д.Нямжав",  
+                "жолооч Н.Мөнхбаатар", 
             ];
             let savedRecords = [];
             let employeeNames = [];
@@ -1260,6 +1264,97 @@
 
         function normalizeName(value) {
             return value ? value.trim().replace(/\s+/g, " ") : "";
+        }
+
+        function safeDecode(value) {
+            if (typeof value !== "string") {
+                return "";
+            }
+            try {
+                return decodeURIComponent(value.replace(/\+/g, "%20"));
+            } catch (error) {
+                return value;
+            }
+        }
+
+        function extractNameFromLinkedInput(rawValue) {
+            const raw = normalizeName(rawValue);
+            if (!raw) {
+                return "";
+            }
+
+            const queryLikeMatch = raw.match(/(?:^|[?&#\s,;])(?:name|worker|employee|fullname)=([^&#\s]+)/i);
+            if (queryLikeMatch && queryLikeMatch[1]) {
+                return normalizeName(safeDecode(queryLikeMatch[1]));
+            }
+
+            if (/^(https?:\/\/|www\.)/i.test(raw)) {
+                try {
+                    const parsed = new URL(raw, window.location.origin);
+                    const keyList = ["name", "worker", "employee", "fullname"];
+                    for (let i = 0; i < keyList.length; i += 1) {
+                        const value = parsed.searchParams.get(keyList[i]);
+                        if (value) {
+                            return normalizeName(safeDecode(value));
+                        }
+                    }
+                    return "";
+                } catch (error) {
+                    return "";
+                }
+            }
+
+            return raw;
+        }
+
+        function sanitizeEmployeeName(rawValue) {
+            let candidate = extractNameFromLinkedInput(rawValue);
+            if (!candidate) {
+                return "";
+            }
+
+            const roleKeywords = /(албан\s*тушаал|position|job|operator|инженер|диспетчер|техникч|жолооч|замчин|мастер|гадасчин|краны|цахилгаанчин)/i;
+            const splitMatch = candidate.match(/^(.+?)\s[-|–—/]\s(.+)$/);
+            if (splitMatch && roleKeywords.test(splitMatch[2])) {
+                candidate = normalizeName(splitMatch[1]);
+            }
+
+            const bracketSuffixMatch = candidate.match(/^(.+?)\s\(([^)]+)\)$/);
+            if (bracketSuffixMatch && roleKeywords.test(bracketSuffixMatch[2])) {
+                candidate = normalizeName(bracketSuffixMatch[1]);
+            }
+
+            if (/^(https?:\/\/|www\.)/i.test(candidate)) {
+                return "";
+            }
+
+            candidate = candidate.replace(/[<>]/g, "").trim();
+            return normalizeName(candidate);
+        }
+
+        function normalizeWorkerJob(value) {
+            const text = normalizeName(value);
+            if (!text) {
+                return "";
+            }
+            if (/^(https?:\/\/|www\.)/i.test(text)) {
+                return "";
+            }
+            return text;
+        }
+
+        const LOCKED_EMPLOYEE_NAMES = Array.from(new Set(
+            DEFAULT_EMPLOYEE_NAMES.map(sanitizeEmployeeName).filter(Boolean)
+        )).sort((left, right) => left.localeCompare(right, "mn"));
+        const LOCKED_EMPLOYEE_NAME_SET = new Set(LOCKED_EMPLOYEE_NAMES);
+
+        function isAllowedEmployeeName(name) {
+            return LOCKED_EMPLOYEE_NAME_SET.has(sanitizeEmployeeName(name));
+        }
+
+        function flushWorkerStateToStorage() {
+            persistEmployeeNames();
+            saveWorkerDraft();
         }
 
         function persistEmployeeNames() {
@@ -1280,8 +1375,8 @@
             }
 
             const workers = Array.from(workerList.querySelectorAll("li[data-name]")).map((item) => ({
-                name: normalizeName(item.dataset.name),
-                job: (item.dataset.job || "").trim(),
+                name: sanitizeEmployeeName(item.dataset.name),
+                job: normalizeWorkerJob(item.dataset.job),
                 rank: (item.dataset.rank || "").trim()
             }));
 
@@ -1379,7 +1474,9 @@
 
                 const parsed = JSON.parse(raw);
                 const selectedFromDraft = Array.isArray(parsed?.selectedNames)
-                    ? parsed.selectedNames.map(normalizeName).filter(Boolean)
+                    ? parsed.selectedNames
+                        .map(sanitizeEmployeeName)
+                        .filter((name) => isAllowedEmployeeName(name))
                     : [];
                 selectedNames = new Set(selectedFromDraft);
 
@@ -1389,11 +1486,11 @@
 
                 if (Array.isArray(parsed?.workers) && parsed.workers.length > 0) {
                     parsed.workers.forEach((worker) => {
-                        const name = normalizeName(worker?.name);
-                        if (!name) {
+                        const name = sanitizeEmployeeName(worker?.name);
+                        if (!name || !isAllowedEmployeeName(name)) {
                             return;
                         }
-                        const job = (worker?.job || "").trim();
+                        const job = normalizeWorkerJob(worker?.job);
                         const rank = (worker?.rank || "").trim();
                         appendWorkerListItem(name, job, rank);
                     });
@@ -1412,65 +1509,26 @@
         }
 
         function loadEmployeeNames() {
-            try {
-                const raw = localStorage.getItem(NAME_DIRECTORY_KEY);
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) {
-                        employeeNames = Array.from(new Set([
-                            ...parsed.map(normalizeName).filter(Boolean),
-                            ...DEFAULT_EMPLOYEE_NAMES.map(normalizeName)
-                        ])).sort((left, right) => left.localeCompare(right, "mn"));
-                        persistEmployeeNames();
-                        return;
-                    }
-                }
-
-                const seededNames = [];
-                savedRecords.forEach((record) => {
-                    if (!record || !Array.isArray(record.workers)) {
-                        return;
-                    }
-                    record.workers.forEach((worker) => {
-                        const normalized = normalizeName(worker && worker.name);
-                        if (normalized) {
-                            seededNames.push(normalized);
-                        }
-                    });
-                });
-                employeeNames = Array.from(new Set([
-                    ...seededNames,
-                    ...DEFAULT_EMPLOYEE_NAMES.map(normalizeName)
-                ])).sort((left, right) => left.localeCompare(right, "mn"));
-                persistEmployeeNames();
-            } catch (error) {
-                console.error("Employee names load error:", error);
-                employeeNames = [...DEFAULT_EMPLOYEE_NAMES].sort((left, right) => left.localeCompare(right, "mn"));
-                persistEmployeeNames();
-            }
+            employeeNames = [...LOCKED_EMPLOYEE_NAMES];
+            persistEmployeeNames();
         }
 
         function setEmployeeNames(nextNames) {
-            employeeNames = Array.from(new Set(nextNames.map(normalizeName).filter(Boolean))).sort((left, right) => left.localeCompare(right, "mn"));
+            employeeNames = [...LOCKED_EMPLOYEE_NAMES];
             persistEmployeeNames();
             renderNameOptions();
         }
 
         function addEmployeeName(name) {
-            const normalized = normalizeName(name);
+            const normalized = sanitizeEmployeeName(name);
             if (!normalized) {
+                alert("Хүчинтэй нэр оруулна уу.");
                 return false;
             }
 
-            if (normalized.length < 2) {
-                alert("Нэр хамгийн багадаа 2 тэмдэгттэй байна.");
+            if (!isAllowedEmployeeName(normalized)) {
+                alert("Зөвхөн урьдчилан оруулсан жагсаалтын нэрсээс сонгоно.");
                 return false;
-            }
-
-            if (!employeeNames.includes(normalized)) {
-                employeeNames.push(normalized);
-                employeeNames.sort((left, right) => left.localeCompare(right, "mn"));
-                persistEmployeeNames();
             }
 
             selectedNames.add(normalized);
@@ -1480,46 +1538,11 @@
         }
 
         function editEmployeeName(oldName) {
-            const nextName = normalizeName(window.prompt("Нэрийг засах", oldName));
-            if (!nextName) {
-                return;
-            }
-
-            if (nextName.length < 2) {
-                alert("Нэр хамгийн багадаа 2 тэмдэгттэй байна.");
-                return;
-            }
-
-            if (nextName === oldName) {
-                return;
-            }
-
-            if (employeeNames.includes(nextName)) {
-                alert("Энэ нэр аль хэдийн байна!");
-                return;
-            }
-
-            employeeNames = employeeNames.map((name) => (name === oldName ? nextName : name));
-            if (selectedNames.has(oldName)) {
-                selectedNames.delete(oldName);
-                selectedNames.add(nextName);
-            }
-            persistEmployeeNames();
-            renderNameOptions();
-            saveWorkerDraft();
+            alert("Нэр засах боломжгүй. Зөвхөн баталгаажсан жагсаалтын нэрс ашиглана.");
         }
 
         function deleteEmployeeName(name) {
-            const confirmed = window.confirm(`"${name}" нэрийг устгах уу?`);
-            if (!confirmed) {
-                return;
-            }
-
-            employeeNames = employeeNames.filter((item) => item !== name);
-            selectedNames.delete(name);
-            persistEmployeeNames();
-            renderNameOptions();
-            saveWorkerDraft();
+            alert("Нэр устгах боломжгүй. Зөвхөн баталгаажсан жагсаалтын нэрс ашиглана.");
         }
 
         function getKnownNames() {
@@ -1594,36 +1617,7 @@
                 const text = document.createElement("span");
                 text.className = "name-option-text";
                 text.textContent = name;
-
-                const actions = document.createElement("span");
-                actions.className = "name-option-actions";
-
-                const editBtn = document.createElement("button");
-                editBtn.type = "button";
-                editBtn.className = "name-option-action edit";
-                editBtn.title = "Засах";
-                editBtn.innerHTML = '<i class="fa fa-pen"></i>';
-                editBtn.addEventListener("click", function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    editEmployeeName(name);
-                });
-
-                const deleteBtn = document.createElement("button");
-                deleteBtn.type = "button";
-                deleteBtn.className = "name-option-action delete";
-                deleteBtn.title = "Устгах";
-                deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
-                deleteBtn.addEventListener("click", function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    deleteEmployeeName(name);
-                });
-
-                actions.appendChild(editBtn);
-                actions.appendChild(deleteBtn);
                 body.appendChild(text);
-                body.appendChild(actions);
 
                 label.appendChild(checkbox);
                 label.appendChild(body);
@@ -1634,8 +1628,13 @@
         }
 
         function seedNameFromInput() {
-            const newName = normalizeName(nameSearchInput ? nameSearchInput.value : "");
+            const newName = sanitizeEmployeeName(nameSearchInput ? nameSearchInput.value : "");
             if (!newName) {
+                return;
+            }
+
+            if (!isAllowedEmployeeName(newName)) {
+                alert("Шинэ нэр нэмэхгүй. Жагсаалт дахь нэрийг сонгоно уу.");
                 return;
             }
 
@@ -1679,10 +1678,15 @@
                 return;
             }
 
+            const safeNames = names.map(sanitizeEmployeeName).filter(Boolean);
+            if (safeNames.length === 0) {
+                return;
+            }
+
             const jobText = job ? job : "Ажлын нэр оруулаагүй";
             const rankText = rank ? ` (${rank}-р зэрэг)` : "";
             const title = `<div class="recent-selection-title">Сүүлд сонгож нэмсэн хүмүүс: ${jobText}${rankText}</div>`;
-            const list = `<div class="recent-selection-list">${names.map((name) => `<div class="recent-selection-item">${name}</div>`).join("")}</div>`;
+            const list = `<div class="recent-selection-list">${safeNames.map((name) => `<div class="recent-selection-item">${name}</div>`).join("")}</div>`;
             const entry = `<div class="recent-selection-entry">${title}${list}</div>`;
 
             recentSelectionPanel.insertAdjacentHTML("beforeend", entry);
@@ -1908,6 +1912,8 @@
         workTypeSelect.addEventListener("change", updateWorkTypeWidth);
         window.addEventListener("resize", updateWorkTypeWidth);
         window.addEventListener("resize", syncWorkerSectionHeight);
+        window.addEventListener("pagehide", flushWorkerStateToStorage);
+        window.addEventListener("beforeunload", flushWorkerStateToStorage);
 
         if (typeof ResizeObserver !== "undefined" && restrictionBox) {
             new ResizeObserver(syncWorkerSectionHeight).observe(restrictionBox);

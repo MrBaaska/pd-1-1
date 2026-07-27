@@ -1220,7 +1220,7 @@ const STATUS_MAP = {
 // attendance state
 const attendance = {};
 WORKERS.forEach(w => {
-    attendance[w.id] = { status: 'waiting', time: null, note: '' };
+    attendance[w.id] = { status: 'waiting', time: null, datetime: null, note: '' };
 });
 const newsRegistrations = {};
 let activeNewsId = null;
@@ -1274,7 +1274,7 @@ function syncDataWithWorkers() {
     const workerIds = new Set(WORKERS.map(w => w.id));
 
     WORKERS.forEach(w => {
-        if (!attendance[w.id]) attendance[w.id] = { status: 'waiting', time: null, note: '' };
+        if (!attendance[w.id]) attendance[w.id] = { status: 'waiting', time: null, datetime: null, note: '' };
     });
     Object.keys(attendance).forEach(id => {
         if (!workerIds.has(id)) delete attendance[id];
@@ -1283,7 +1283,7 @@ function syncDataWithWorkers() {
     Object.keys(newsRegistrations).forEach(newsId => {
         const reg = newsRegistrations[newsId] || {};
         WORKERS.forEach(w => {
-            if (!reg[w.id]) reg[w.id] = { status: 'waiting', time: null, note: '' };
+            if (!reg[w.id]) reg[w.id] = { status: 'waiting', time: null, datetime: null, note: '' };
         });
         Object.keys(reg).forEach(id => {
             if (!workerIds.has(id)) delete reg[id];
@@ -1389,7 +1389,7 @@ function todayISODate() {
 function createEmptyRegistration() {
     const obj = {};
     WORKERS.forEach(w => {
-        obj[w.id] = { status: 'waiting', time: null, note: '' };
+        obj[w.id] = { status: 'waiting', time: null, datetime: null, note: '' };
     });
     return obj;
 }
@@ -1397,10 +1397,32 @@ function createEmptyRegistration() {
 function cloneRegistration(source) {
     const out = {};
     WORKERS.forEach(w => {
-        const v = source?.[w.id] || { status: 'waiting', time: null, note: '' };
-        out[w.id] = { status: v.status, time: v.time, note: v.note };
+        const v = source?.[w.id] || { status: 'waiting', time: null, datetime: null, note: '' };
+        out[w.id] = { status: v.status, time: v.time, datetime: v.datetime || null, note: v.note };
     });
     return out;
+}
+
+function getCurrentDateTimeParts() {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hhmm = now.toLocaleTimeString('mn-MN', { hour:'2-digit', minute:'2-digit' });
+    return {
+        time: hhmm,
+        datetime: `${yyyy}-${mm}-${dd} ${hhmm}`,
+    };
+}
+
+function formatAttendanceDateTime(a) {
+    if (!a) return '—';
+    if (a.datetime) return a.datetime;
+    if (a.time) {
+        const d = document.getElementById('daily-date')?.value || todayISODate();
+        return `${d} ${a.time}`;
+    }
+    return '—';
 }
 
 function persistCurrentAttendanceToActiveNews() {
@@ -1420,6 +1442,7 @@ function normalizeRegistration(raw) {
         safe[w.id] = {
             status: v.status || 'waiting',
             time: v.time || null,
+            datetime: v.datetime || null,
             note: v.note || '',
         };
     });
@@ -1497,8 +1520,8 @@ function setActiveNews(newsId) {
 
     const reg = newsRegistrations[newsId];
     WORKERS.forEach(w => {
-        const src = reg[w.id] || { status: 'waiting', time: null, note: '' };
-        attendance[w.id] = { status: src.status, time: src.time, note: src.note };
+        const src = reg[w.id] || { status: 'waiting', time: null, datetime: null, note: '' };
+        attendance[w.id] = { status: src.status, time: src.time, datetime: src.datetime || null, note: src.note };
     });
 
     const card = document.querySelector(`.news-card[data-news-id="${newsId}"]`);
@@ -1578,7 +1601,7 @@ function renderTable() {
                     <option value="other" ${a.status === 'other' ? 'selected' : ''}>Бусад</option>
                 </select>
             </td>
-            <td class="time-cell">${a.time || '—'}</td>
+            <td class="time-cell">${formatAttendanceDateTime(a)}</td>
             <td class="note-cell">${a.note || '—'}</td>
         `;
         tbody.appendChild(tr);
@@ -1589,14 +1612,17 @@ function setAttendanceStatus(empId, status, note = '') {
     if (!attendance[empId]) return;
 
     let timeStr = null;
+    let datetimeStr = null;
     let normalizedNote = note;
     if (status !== 'waiting') {
-        timeStr = new Date().toLocaleTimeString('mn-MN', { hour:'2-digit', minute:'2-digit' });
+        const dt = getCurrentDateTimeParts();
+        timeStr = dt.time;
+        datetimeStr = dt.datetime;
     } else {
         normalizedNote = '';
     }
 
-    attendance[empId] = { status, time: timeStr, note: normalizedNote };
+    attendance[empId] = { status, time: timeStr, datetime: datetimeStr, note: normalizedNote };
 
     persistCurrentAttendanceToActiveNews();
 
@@ -1655,7 +1681,7 @@ function renderDailyReport() {
             <td>${emp.name}</td>
             <td>${emp.role}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
-            <td>${a.time || '—'}</td>
+            <td>${formatAttendanceDateTime(a)}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -1928,7 +1954,7 @@ function removeNewsCard(cardId) {
         } else {
             activeNewsId = null;
             WORKERS.forEach(w => {
-                attendance[w.id] = { status: 'waiting', time: null, note: '' };
+                attendance[w.id] = { status: 'waiting', time: null, datetime: null, note: '' };
             });
             renderTable();
             updateStats();
