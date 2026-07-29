@@ -274,6 +274,31 @@
             overflow: hidden;
         }
         #qr-reader video { border-radius: 8px; }
+        .qr-device-input {
+            margin-top: 12px;
+            width: 100%;
+            height: 42px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface2);
+            color: var(--text);
+            padding: 0 12px;
+            font-size: 14px;
+        }
+        .qr-device-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(108, 101, 247, 0.15);
+            background: #fff;
+        }
+        .qr-device-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text2);
+        }
+        #qr-start {
+            display: none !important;
+        }
 
         .qr-result {
             margin-top: 12px;
@@ -731,9 +756,76 @@
         }
         .img-viewer-list {
             margin: 0;
-            padding-left: 18px;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .img-viewer-list li {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 9px 10px;
+            background: rgba(255,255,255,0.03);
+        }
+        .viewer-person-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .viewer-person-name {
             font-size: 13px;
-            line-height: 1.6;
+            font-weight: 600;
+            color: #fff;
+        }
+        .viewer-person-meta {
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #b7bec7;
+        }
+        .viewer-time {
+            font-family: 'IBM Plex Mono', monospace;
+            color: #fff;
+        }
+        .viewer-source-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .viewer-info-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            background: rgba(210,153,34,0.12);
+            color: var(--yellow);
+            border: 1px solid rgba(210,153,34,0.25);
+        }
+        .viewer-info-badge.pending {
+            background: rgba(248,81,73,0.12);
+            color: var(--red);
+            border: 1px solid rgba(248,81,73,0.25);
+        }
+        .viewer-source-badge.manual {
+            background: rgba(248,81,73,0.12);
+            color: var(--red);
+            border: 1px solid rgba(248,81,73,0.25);
+        }
+        .viewer-source-badge.verified {
+            background: rgba(63,185,80,0.12);
+            color: var(--green);
+            border: 1px solid rgba(63,185,80,0.25);
         }
         .img-viewer-empty {
             color: #999;
@@ -833,6 +925,19 @@
             font-size: 12px;
             color: var(--text2);
         }
+            .note-badge {
+                display: inline-block;
+                padding: 3px 10px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .note-badge.verified {
+                background: rgba(63,185,80,0.12);
+                color: var(--green);
+                border: 1px solid rgba(63,185,80,0.25);
+            }
 
         /* TOAST */
         .toast {
@@ -1037,6 +1142,8 @@
                             </svg>
                             Камер асаах
                         </button>
+                        <input type="text" id="qr-device-input" class="qr-device-input" placeholder="2D Scanner X6 уншилт энд орж ирнэ..." autocomplete="off">
+                       
                         <div id="qr-reader" style="display:none;"></div>
                     </div>
 
@@ -1174,7 +1281,44 @@
 // =====================
 // DATA
 // =====================
-let WORKERS = [
+const REGISTERED_WORKERS_CACHE_KEYS = ['registeredWorkers_v1', 'workersCustom_v1', 'workersCache_v1'];
+
+function normalizeWorkerFromRegistered(raw) {
+    if (!raw) return null;
+    const id = String(raw.id || '').trim();
+    const name = String(raw.name || '').trim();
+    const role = String(raw.role || raw.position || '').trim() || 'Тодорхойгүй';
+    if (!id || !name) return null;
+    return { id, name, role };
+}
+
+function loadWorkersFromRegisteredCache() {
+    try {
+        const dedup = new Map();
+
+        REGISTERED_WORKERS_CACHE_KEYS.forEach((key) => {
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return;
+
+            parsed.forEach((item) => {
+                const worker = normalizeWorkerFromRegistered(item);
+                if (worker && !dedup.has(worker.id)) {
+                    dedup.set(worker.id, worker);
+                }
+            });
+        });
+
+        return Array.from(dedup.values());
+    } catch (error) {
+        return [];
+    }
+}
+
+const registeredWorkers = loadWorkersFromRegisteredCache();
+
+let WORKERS = registeredWorkers.length ? registeredWorkers : [
     { id: 'EMP001', name: 'Б.Баасанжаргал', role: 'ПЧИу' },
     { id: 'EMP002', name: 'Б.Батболд',       role: 'ПД' },
     { id: 'EMP003', name: 'О.Нэргүй',        role: 'ПДБк' },
@@ -1230,6 +1374,12 @@ let autosaveTimer = null;
 let qrScanner = null;
 let qrRunning = false;
 let workerAdminVisible = false;
+const QR_DEVICE_TIMEOUT_MS = 350;
+const QR_DEVICE_MIN_CHARS = 3;
+const QR_DEVICE_MAX_AVG_INTERVAL_MS = 70;
+let qrDeviceTimestamps = [];
+let qrDeviceLastKeyTime = 0;
+let qrDeviceInputPasted = false;
 
 // =====================
 // CLOCK
@@ -1544,6 +1694,174 @@ function switchTab(tab) {
     });
     document.getElementById('tab-qr').classList.toggle('active', tab==='qr');
     document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+    if (tab === 'qr') {
+        const scanInput = document.getElementById('qr-device-input');
+        if (scanInput) {
+            setTimeout(() => scanInput.focus(), 0);
+        }
+    }
+}
+
+function setQrDeviceHint(message, isError = false) {
+    const hint = document.getElementById('qr-device-hint');
+    if (!hint) return;
+    hint.textContent = message;
+    hint.style.color = isError ? '#d64545' : 'var(--text2)';
+}
+
+function resetQrDeviceTracking() {
+    qrDeviceTimestamps = [];
+    qrDeviceLastKeyTime = 0;
+    qrDeviceInputPasted = false;
+}
+
+function registerFromScannerInput(rawText) {
+    const emp = findWorkerFromQr(rawText);
+    if (!emp) {
+        showToast('Танигдаагүй QR', 'Бүртгэлд байхгүй');
+        setQrDeviceHint('QR код танигдсангүй. Бүртгэлтэй ажилтны QR-г уншуулна уу.', true);
+        return;
+    }
+
+    setAttendanceStatus(emp.id, 'present', '2D scanner X6');
+    searchTerm = '';
+    setQrDeviceHint(`Амжилттай: ${emp.name} бүртгэгдлээ.`);
+}
+
+function extractEmpIdFromSelect(selectEl) {
+    if (!selectEl) return '';
+    const handler = String(selectEl.getAttribute('onchange') || '');
+    const match = handler.match(/setAttendanceStatus\('([^']+)'/);
+    return match ? String(match[1]).trim() : '';
+}
+
+function getWorkersFromTableBody() {
+    const rows = Array.from(document.querySelectorAll('#att-tbody tr'));
+    return rows.map((row) => {
+        const id = extractEmpIdFromSelect(row.querySelector('.table-status-select'));
+        const name = normalizeQrValue(row.querySelector('.emp-name-cell')?.textContent);
+        const role = normalizeQrValue(row.querySelector('.emp-role-cell')?.textContent);
+        if (!id || !name) return null;
+        return { id, name, role };
+    }).filter(Boolean);
+}
+
+function normalizeQrValue(value) {
+    return String(value || '').trim();
+}
+
+function parseEmpNumeric(value) {
+    const match = normalizeQrValue(value).toUpperCase().match(/^EMP0*(\d+)$/);
+    if (!match) return null;
+    return Number(match[1]);
+}
+
+function collectQrCandidates(rawText) {
+    const text = normalizeQrValue(rawText);
+    const candidates = [];
+    if (text) candidates.push(text);
+
+    const empMatch = text.match(/EMP\d{1,6}/i);
+    if (empMatch) candidates.push(empMatch[0]);
+
+    try {
+        const url = new URL(text);
+        ['id', 'empId', 'employeeId', 'name', 'employeeName', 'fullName'].forEach((key) => {
+            const v = normalizeQrValue(url.searchParams.get(key));
+            if (v) candidates.push(v);
+        });
+    } catch (error) {
+    }
+
+    try {
+        const obj = JSON.parse(text);
+        ['id', 'empId', 'employeeId', 'name', 'employeeName', 'fullName', 'employee'].forEach((key) => {
+            const v = normalizeQrValue(obj?.[key]);
+            if (v) candidates.push(v);
+        });
+    } catch (error) {
+    }
+
+    return [...new Set(candidates.map(v => normalizeQrValue(v).toLowerCase()).filter(Boolean))];
+}
+
+function findWorkerFromQr(rawText) {
+    const candidates = collectQrCandidates(rawText);
+    if (!candidates.length) return null;
+
+    const tableWorkers = getWorkersFromTableBody();
+    const sourceWorkers = tableWorkers.length
+        ? [...tableWorkers, ...WORKERS.filter(w => !tableWorkers.some(tw => tw.id === w.id))]
+        : WORKERS;
+
+    const byId = sourceWorkers.find(w => candidates.includes(normalizeQrValue(w.id).toLowerCase()));
+    if (byId) return byId;
+
+    const candidateEmpNumbers = candidates
+        .map((candidate) => parseEmpNumeric(candidate))
+        .filter((num) => Number.isFinite(num));
+    if (candidateEmpNumbers.length) {
+        const byEmpNumber = sourceWorkers.find((w) => candidateEmpNumbers.includes(parseEmpNumeric(w.id)));
+        if (byEmpNumber) return byEmpNumber;
+    }
+
+    const byName = sourceWorkers.find(w => candidates.includes(normalizeQrValue(w.name).toLowerCase()));
+    if (byName) return byName;
+
+    return sourceWorkers.find((w) => {
+        const name = normalizeQrValue(w.name).toLowerCase();
+        return candidates.some((candidate) => candidate.includes(name) || name.includes(candidate));
+    }) || null;
+}
+
+const qrDeviceInput = document.getElementById('qr-device-input');
+if (qrDeviceInput) {
+    qrDeviceInput.addEventListener('paste', function () {
+        qrDeviceInputPasted = true;
+    });
+
+    qrDeviceInput.addEventListener('keydown', function (e) {
+        const now = Date.now();
+        if (now - qrDeviceLastKeyTime > QR_DEVICE_TIMEOUT_MS) {
+            qrDeviceTimestamps = [];
+            qrDeviceInputPasted = false;
+        }
+        qrDeviceLastKeyTime = now;
+        if (e.key.length === 1) {
+            qrDeviceTimestamps.push(now);
+        }
+    });
+
+    qrDeviceInput.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+
+        e.preventDefault();
+        const scannedText = qrDeviceInput.value.trim();
+        const keyCount = qrDeviceTimestamps.length;
+        const totalDurationMs = keyCount > 1 ? qrDeviceTimestamps[keyCount - 1] - qrDeviceTimestamps[0] : 0;
+        const avgIntervalMs = keyCount > 1 ? totalDurationMs / (keyCount - 1) : 0;
+        const isLikelyScannerInput = !qrDeviceInputPasted
+            && keyCount >= QR_DEVICE_MIN_CHARS
+            && avgIntervalMs <= QR_DEVICE_MAX_AVG_INTERVAL_MS;
+
+        qrDeviceInput.value = '';
+        resetQrDeviceTracking();
+
+        if (!isLikelyScannerInput) {
+            setQrDeviceHint('Энэ талбар scanner уншилтад зориулагдсан. Гараар бичсэн утга бүртгэгдэхгүй.', true);
+            qrDeviceInput.focus();
+            return;
+        }
+
+        registerFromScannerInput(scannedText);
+        qrDeviceInput.focus();
+    });
+
+    window.addEventListener('load', function () {
+        if (document.getElementById('tab-qr')?.classList.contains('active')) {
+            qrDeviceInput.focus();
+        }
+    });
 }
 
 function startQR() {
@@ -1551,15 +1869,18 @@ function startQR() {
     document.getElementById('qr-start').style.display = 'none';
     const reader = document.getElementById('qr-reader');
     reader.style.display = 'block';
+    setQrDeviceHint(`Камер аслаа. Бүртгэлтэй ${WORKERS.length} ажилтаны нэр/ID-гаар шууд бүртгэнэ.`);
+    const scanInput = document.getElementById('qr-device-input');
+    if (scanInput) scanInput.focus();
     qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 220, height: 220 } },
         (text) => {
-            // text should be employee ID e.g. EMP001
-            const emp = WORKERS.find(w => w.id === text.trim());
+            const emp = findWorkerFromQr(text);
             if (emp) {
                 setAttendanceStatus(emp.id, 'present', 'QR уншуулсан');
+                searchTerm = '';
                 qrScanner.pause(true);
                 setTimeout(() => {
                     try { qrScanner.resume(); } catch(e) {}
@@ -1593,7 +1914,6 @@ function renderTable() {
             <td>
                 <select class="table-status-select" onchange="setAttendanceStatus('${w.id}', this.value, 'Хүснэгтээс бүртгэв')">
                     <option value="waiting" ${a.status === 'waiting' ? 'selected' : ''}>Хүлээгдэж буй</option>
-                    <option value="present" ${a.status === 'present' ? 'selected' : ''}>Ирсэн</option>
                     <option value="holiday" ${a.status === 'holiday' ? 'selected' : ''}>Ээлжийн амралттай</option>
                     <option value="sick" ${a.status === 'sick' ? 'selected' : ''}>Өвчтэй</option>
                     <option value="free" ${a.status === 'free' ? 'selected' : ''}>Чөлөөтэй</option>
@@ -1602,10 +1922,19 @@ function renderTable() {
                 </select>
             </td>
             <td class="time-cell">${formatAttendanceDateTime(a)}</td>
-            <td class="note-cell">${a.note || '—'}</td>
+            <td class="note-cell">${formatAttendanceNote(a.note)}</td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+function formatAttendanceNote(note) {
+    const normalizedNote = String(note || '').trim();
+    if (!normalizedNote) return '—';
+    if (normalizedNote === '2D scanner X6' || normalizedNote === 'QR уншуулсан') {
+        return '<span class="note-badge verified">Баталгаажсан</span>';
+    }
+    return normalizedNote;
 }
 
 function setAttendanceStatus(empId, status, note = '') {
@@ -1817,6 +2146,30 @@ function onNewsDateChanged(input) {
     scheduleAutosave();
 }
 
+function getAttendanceSourceMeta(note) {
+    const normalizedNote = String(note || '').trim();
+    if (normalizedNote === '2D scanner X6') {
+        return { label: 'Баталгаажсан', cls: 'verified' };
+    }
+    if (normalizedNote === 'QR уншуулсан') {
+        return { label: 'Баталгаажсан', cls: 'verified' };
+    }
+    if (normalizedNote === 'Гараар бүртгэв' || normalizedNote === 'Хүснэгтээс бүртгэв') {
+        return { label: 'Баталгаажуулаагүй', cls: 'manual' };
+    }
+    if (!normalizedNote) {
+        return { label: 'Баталгаажуулаагүй', cls: 'manual' };
+    }
+    return { label: 'Баталгаажуулаагүй', cls: 'manual' };
+}
+
+function getAttendanceInfoMeta(status) {
+    if (status === 'holiday' || status === 'sick' || status === 'free' || status === 'mission' || status === 'other') {
+        return { label: 'Танилцаагүй', cls: 'pending' };
+    }
+    return { label: 'Танилцсан', cls: '' };
+}
+
 function getRegisteredPeopleByDate(dayKey) {
     const reg = newsRegistrations[dayKey] || {};
     return Object.keys(reg).map(empId => {
@@ -1824,8 +2177,14 @@ function getRegisteredPeopleByDate(dayKey) {
         if (!rec || rec.status === 'waiting') return null;
         const emp = WORKERS.find(w => w.id === empId);
         if (!emp) return null;
-        const label = (STATUS_MAP[rec.status] || STATUS_MAP.waiting).label;
-        return `${emp.name} (${label})`;
+        return {
+            name: emp.name,
+            status: rec.status,
+            statusLabel: (STATUS_MAP[rec.status] || STATUS_MAP.waiting).label,
+            datetime: formatAttendanceDateTime(rec),
+            info: getAttendanceInfoMeta(rec.status),
+            source: getAttendanceSourceMeta(rec.note),
+        };
     }).filter(Boolean);
 }
 
@@ -2019,9 +2378,23 @@ function openImageViewer(src) {
     title.textContent = `${dateText} - Бүртгэгдсэн хүмүүс`;
     list.innerHTML = '';
     if (people.length) {
-        people.forEach(name => {
+        people.forEach(person => {
             const li = document.createElement('li');
-            li.textContent = name;
+            const showStatus = person.status !== 'present';
+            const statusHtml = showStatus
+                ? `<span class="status-badge ${(STATUS_MAP[person.status] || STATUS_MAP.waiting).cls}">${person.statusLabel}</span>`
+                : '';
+            li.innerHTML = `
+                <div class="viewer-person-row">
+                    <span class="viewer-person-name">${person.name}</span>
+                    ${statusHtml}
+                </div>
+                <div class="viewer-person-meta">
+                    <span class="viewer-time">${person.datetime}</span>
+                    <span class="viewer-info-badge ${person.info.cls}">${person.info.label}</span>
+                    <span class="viewer-source-badge ${person.source.cls}">${person.source.label}</span>
+                </div>
+            `;
             list.appendChild(li);
         });
         empty.style.display = 'none';

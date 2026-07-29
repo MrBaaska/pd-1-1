@@ -31,6 +31,84 @@
     return name;
   }
 
+  function normalizeName(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function collectScannerCandidates(rawValue) {
+    const text = String(rawValue || '').trim();
+    const candidates = [];
+
+    if (text) {
+      candidates.push(text);
+    }
+
+    const empMatch = text.match(/EMP\d{1,6}/i);
+    if (empMatch) {
+      candidates.push(empMatch[0]);
+    }
+
+    try {
+      const url = new URL(text);
+      ['id', 'empId', 'employeeId', 'code', 'name', 'fullName', 'employeeName', 'employee'].forEach(function (key) {
+        const v = String(url.searchParams.get(key) || '').trim();
+        if (v) candidates.push(v);
+      });
+    } catch (e) {
+      // Not URL format.
+    }
+
+    try {
+      const parsed = JSON.parse(text);
+      ['id', 'empId', 'employeeId', 'code', 'name', 'fullName', 'employeeName', 'employee'].forEach(function (key) {
+        const v = String((parsed && parsed[key]) || '').trim();
+        if (v) candidates.push(v);
+      });
+    } catch (e) {
+      // Not JSON format.
+    }
+
+    return Array.from(new Set(candidates.filter(Boolean)));
+  }
+
+  function findWorkerFromScanValue(rawValue) {
+    const candidates = collectScannerCandidates(rawValue);
+    if (!candidates.length) return null;
+
+    for (let i = 0; i < candidates.length; i += 1) {
+      const byCode = state.workersMap.get(normalizeCode(candidates[i]));
+      if (byCode) return byCode;
+    }
+
+    const workers = getWorkersArrayFromMap();
+    for (let i = 0; i < candidates.length; i += 1) {
+      const candidateName = normalizeName(candidates[i]);
+      if (!candidateName) continue;
+
+      const exact = workers.find(function (w) {
+        return normalizeName(w.name) === candidateName || normalizeName(buildDisplayName(w)) === candidateName;
+      });
+      if (exact) return exact;
+    }
+
+    for (let i = 0; i < candidates.length; i += 1) {
+      const candidateName = normalizeName(candidates[i]);
+      if (!candidateName) continue;
+
+      const fuzzy = workers.find(function (w) {
+        const workerName = normalizeName(w.name);
+        const workerDisplay = normalizeName(buildDisplayName(w));
+        return workerName.includes(candidateName)
+          || candidateName.includes(workerName)
+          || workerDisplay.includes(candidateName)
+          || candidateName.includes(workerDisplay);
+      });
+      if (fuzzy) return fuzzy;
+    }
+
+    return null;
+  }
+
   function toast(message, kind) {
     if (typeof window.showToast === 'function') {
       window.showToast(message, kind || 'ok');
@@ -533,8 +611,8 @@
         return original(nameOrCode, source);
       }
 
-      const code = normalizeCode(nameOrCode);
-      if (!code) {
+      const scannedValue = String(nameOrCode || '').trim();
+      if (!scannedValue) {
         beep(false);
         toast('QR код хоосон байна.', 'warn');
         return false;
@@ -546,7 +624,7 @@
         return false;
       }
 
-      const worker = state.workersMap.get(code);
+      const worker = findWorkerFromScanValue(scannedValue);
       if (!worker) {
         beep(false);
         toast('Ажилтан бүртгэлгүй', 'warn');
