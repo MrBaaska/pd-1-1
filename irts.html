@@ -1125,8 +1125,6 @@ function renderSummaryTable(){
         const s=attendance[dateStr][emp.id]||'';
         if(s==='ажилд'||s==='илүү цаг') cnt++;
       });
-    } else if(!isWe) {
-      cnt=employees.length;
     }
     if(cnt>0){
       td.style.color='var(--work)';
@@ -1245,6 +1243,7 @@ function deleteEmployee(id){
   employees=employees.filter(e=>e.id!==id);
   saveAll();
   renderDaily();
+  if(currentView==='summary') renderSummaryTable();
   showToast('Устгагдлаа','var(--sick)');
 }
 

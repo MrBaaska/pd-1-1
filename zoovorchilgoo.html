@@ -394,7 +394,7 @@
         }
 
         .name-selector-head {
-            display: flex;
+            display: none;
             gap: 8px;
             align-items: center;
         }
@@ -1809,17 +1809,90 @@
 
         function getRecordDayKey(record) {
             const source = record.workDate || record.timestamp;
-            if (!source) {
+            const parts = getUlaanbaatarDateTimeParts(source);
+            if (!parts) {
                 return "Огноо тодорхойгүй";
             }
+            const yyyy = parts.year;
+            const mm = parts.month;
+            const dd = parts.day;
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function getUlaanbaatarDateTimeParts(source) {
+            if (!source) {
+                return null;
+            }
+
+            const localDateTimeMatch = String(source).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+            if (localDateTimeMatch) {
+                return {
+                    year: localDateTimeMatch[1],
+                    month: localDateTimeMatch[2],
+                    day: localDateTimeMatch[3],
+                    hour: localDateTimeMatch[4],
+                    minute: localDateTimeMatch[5],
+                    second: localDateTimeMatch[6] || "00"
+                };
+            }
+
             const dateObj = new Date(source);
             if (Number.isNaN(dateObj.getTime())) {
+                return null;
+            }
+
+            const formatter = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Ulaanbaatar",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            });
+
+            const partMap = {};
+            formatter.formatToParts(dateObj).forEach((part) => {
+                if (part.type !== "literal") {
+                    partMap[part.type] = part.value;
+                }
+            });
+
+            if (!partMap.year || !partMap.month || !partMap.day || !partMap.hour || !partMap.minute || !partMap.second) {
+                return null;
+            }
+
+            return {
+                year: partMap.year,
+                month: partMap.month,
+                day: partMap.day,
+                hour: partMap.hour,
+                minute: partMap.minute,
+                second: partMap.second
+            };
+        }
+
+        function formatUlaanbaatarDateTime(source) {
+            const parts = getUlaanbaatarDateTimeParts(source);
+            if (!parts) {
                 return "Огноо тодорхойгүй";
             }
-            const yyyy = dateObj.getFullYear();
-            const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
-            const dd = String(dateObj.getDate()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd}`;
+            return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+        }
+
+        function getCurrentUlaanbaatarDateTimeLocalInputValue() {
+            const nowParts = getUlaanbaatarDateTimeParts(new Date().toISOString());
+            if (!nowParts) {
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, "0");
+                const dd = String(now.getDate()).padStart(2, "0");
+                const hh = String(now.getHours()).padStart(2, "0");
+                const min = String(now.getMinutes()).padStart(2, "0");
+                return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+            }
+            return `${nowParts.year}-${nowParts.month}-${nowParts.day}T${nowParts.hour}:${nowParts.minute}`;
         }
 
         function toDateLabel(dayKey) {
@@ -1833,8 +1906,7 @@
             });
         }
 
-        const now = new Date();
-        const dateTimeString = now.toISOString().slice(0, 16);
+        const dateTimeString = getCurrentUlaanbaatarDateTimeLocalInputValue();
         document.getElementById('workDate').value = dateTimeString;
         updateWorkTypeWidth();
         syncWorkerSectionHeight();
@@ -2145,10 +2217,7 @@
                 const card = document.createElement('div');
                 card.className = 'record-card';
 
-                const recordDate = new Date(record.workDate || record.timestamp);
-                const formatDate = Number.isNaN(recordDate.getTime())
-                    ? 'Огноо тодорхойгүй'
-                    : recordDate.toLocaleString('mn-MN');
+                const formatDate = formatUlaanbaatarDateTime(record.workDate || record.timestamp);
                 
                 card.innerHTML = `
                     <div class="record-header" style="justify-content: flex-start;">
@@ -2210,8 +2279,7 @@
         }
 
         function resetForm() {
-            const now = new Date();
-            document.getElementById('workDate').value = now.toISOString().slice(0, 16);
+            document.getElementById('workDate').value = getCurrentUlaanbaatarDateTimeLocalInputValue();
             document.getElementById('distance1').value = '';
             document.getElementById('meter1').value = '';
             document.getElementById('distance2').value = '';
