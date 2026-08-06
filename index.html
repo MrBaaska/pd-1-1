@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Замын ...-р хэсэг — Удирдлагын систем</title>
+  <title>Замын 1-р хэсэг — Удирдлагын систем</title>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -31,7 +31,7 @@
       --shell-gap: clamp(12px, 2vw, 24px);
       --shell-pad: clamp(12px, 2vw, 28px);
       --sidebar-width: 320px;
-      --frame-min-height: calc(100dvh - var(--topbar-height) - (var(--shell-gap) * 2));
+      --frame-min-height: calc(100dvh - var(--topbar-height) - var(--shell-gap));
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -562,11 +562,30 @@
       border: 1px solid var(--border);
       border-radius: 18px;
       overflow: hidden;
-      height: var(--frame-min-height);
+      height: auto;
       min-height: 520px;
+      min-height: var(--frame-min-height);
       display: flex;
       flex-direction: column;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+    }
+    .main.tushaal-expanded {
+      padding: 0;
+      overflow: hidden;
+    }
+    .main.tushaal-expanded .dashboard {
+      height: calc(100dvh - var(--topbar-height));
+    }
+    .main.tushaal-expanded .content-frame-wrap {
+      height: calc(100dvh - var(--topbar-height));
+      min-height: calc(100dvh - var(--topbar-height));
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+      box-shadow: none;
+    }
+    .main.tushaal-expanded #content-frame {
+      min-height: calc(100dvh - var(--topbar-height) - 54px);
     }
     .frame-titlebar {
       display: flex;
@@ -587,6 +606,7 @@
       width: 100%;
       flex: 1;
       min-height: 0;
+      min-height: 620px;
       border: none;
       display: block;
       background: transparent;
@@ -704,6 +724,9 @@
       }
       .main {
         padding: 12px;
+      }
+      .main.tushaal-expanded {
+        padding: 0;
       }
       .content-frame-wrap {
         width: 100%;
@@ -1609,7 +1632,14 @@
   function loadFramePage(pageKey, clickedElement) {
     const frame = document.getElementById('content-frame');
     const frameTitle = document.getElementById('frame-title-label');
+    const main = document.querySelector('.main');
     const titleText = clickedElement.textContent.trim().replace(/\s+/g, ' ');
+    const isTushaalPage = pageKey === 'Тушаал, стандарт';
+
+    if (main) {
+      main.classList.toggle('tushaal-expanded', isTushaalPage);
+    }
+
     frame.src = resolvePageSrc(pageKey, titleText);
     writeLastPage(pageKey);
     if (frameTitle) {
