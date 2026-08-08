@@ -976,6 +976,12 @@
         <div class="sidebar-sub">
           <a href="#" id="ajiltan-link" data-page-key="Ажилтануудын мэдээлэл">Ажилтануудын мэдээлэл</a>
           <a href="#" id="sum-link" data-page-key="Суман шилжүүлгийн бүртгэл">Суман шилжүүлгийн бүртгэл</a>
+          <a href="#" data-page-key="Малтай айлын судалгаа">Малтай айлын судалгаа</a>
+          <a href="#" data-page-key="Гүүр, хоолойн судалгаа">Гүүр, хоолойн судалгаа</a>
+          <a href="#" data-page-key="ПУ-5 дэр модны судалгаа">ПУ-5 дэр модны судалгаа</a>
+          <a href="#" data-page-key="ПУ-2 зам төмрийн судалгаа">ПУ-2 зам төмрийн судалгаа</a>
+          <a href="#" data-page-key="нөөц зам төмрийн судалгаа">Нөөц зам төмрийн судалгаа</a>
+          <a href="#" data-page-key="уулзварын зайн судалгаа">Уулзварын зайн судалгаа</a>
         </div>
       </div>
 
@@ -1232,6 +1238,12 @@
     'Менежментийн нэгдсэн тогтолцоо': 'anhaar.html',
     'Ажилтануудын мэдээлэл': 'ajiltan.html',
     'Суман шилжүүлгийн бүртгэл': 'sum.html',
+    'Малтай айлын судалгаа': 'torZasagch.html',
+    'Гүүр, хоолойн судалгаа': 'isso.html',
+    'ПУ-5 дэр модны судалгаа': 'pu5.html',
+    'ПУ-2 зам төмрийн судалгаа': 'gemtelteiZT.html',
+    'нөөц зам төмрийн судалгаа': 'nootsZT.html',
+    'уулзварын зайн судалгаа': 'uZai.html',
     'ХАБЭА-н үзлэг': 'habea.html',
     'Паспортын үзлэг': 'passport.html',
     'Замын техникийн байдал': 'tech.html',
@@ -1634,7 +1646,7 @@
     const frameTitle = document.getElementById('frame-title-label');
     const main = document.querySelector('.main');
     const titleText = clickedElement.textContent.trim().replace(/\s+/g, ' ');
-    const isTushaalPage = pageKey === 'Тушаал, стандарт';
+    const isTushaalPage = pageKey === 'Тушаал, стандарт' || pageKey === 'уулзварын зайн судалгаа';
 
     if (main) {
       main.classList.toggle('tushaal-expanded', isTushaalPage);
