@@ -443,22 +443,22 @@
     <table id="rail-table">
       <thead>
         <tr>
-          <th rowspan="5">№</th>
-          <th rowspan="5">Харъяа өртөө зөрлөг</th>
-          <th rowspan="5">Сумын <br> дугаар</th>
-          <th rowspan="5">Замын нэр</th>
-          <th rowspan="5">Тоонолж <br> №</th>
-          <th rowspan="5">Зам <br> төмрийн <br> маяг</th>
-          <th rowspan="5">Сумын <br> чиглэл</th>
-          <th rowspan="5">Шавалт</th>
-           <th rowspan="5">Байршуулсан <br> он</th>
-          <th rowspan="5">Зүрхэвч <br>  марк</th>
-          <th rowspan="5">Угийн <br> бэхэлгээний <br> маяг</th>
-          <th rowspan="5">Зүрхэвчний <br>  хийц</th>
-          <th rowspan="5">Дүнзний <br> тоо</th>
-          <th rowspan="5">Ажиллах <br> төрөл</th>
+          <th rowspan="4">№</th>
+          <th rowspan="4">Харъяа өртөө зөрлөг</th>
+          <th rowspan="4">Сумын <br> дугаар</th>
+          <th rowspan="4">Замын нэр</th>
+          <th rowspan="4">Тоонолж <br> №</th>
+          <th rowspan="4">Зам <br> төмрийн <br> маяг</th>
+          <th rowspan="4">Сумын <br> чиглэл</th>
+          <th rowspan="4">Шавалт</th>
+           <th rowspan="4">Байршуулсан <br> он</th>
+          <th rowspan="4">Зүрхэвч <br>  марк</th>
+          <th rowspan="4">Угийн <br> бэхэлгээний <br> маяг</th>
+          <th rowspan="4">Зүрхэвчний <br>  хийц</th>
+          <th rowspan="4">Дүнзний <br> тоо</th>
+          <th rowspan="4">Ажиллах <br> төрөл</th>
           <th colspan="13">Элэгдэл /мм-ээр/</th>
-          <th rowspan="5">Үйлдэл</th>
+          <th rowspan="4">Үйлдэл</th>
         </tr>
         <tr>
           <th colspan="5">Шор</th>
@@ -521,6 +521,8 @@
         '', '', '',
         ...normalized.slice(4)
       ];
+      // 24→27→26: apply the same trim that the length===27 branch does
+      normalized = [...normalized.slice(0, 11), ...normalized.slice(12)];
     }
     return normalized;
   }
