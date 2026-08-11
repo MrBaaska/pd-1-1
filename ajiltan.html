@@ -541,7 +541,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>ЗАМЫН  ...-Р ХЭСГИЙН АЖИЛЧДЫН СУДАЛГАА, БҮРТГЭЛ</h1>
+            <h1>ЗАМЫН  1-Р ХЭСГИЙН АЖИЛЧДЫН СУДАЛГАА, БҮРТГЭЛ</h1>
             <p id="employeeCountText">Нийт 0 ажилтны мэдээллийн сан</p>
         </header>
 
@@ -880,7 +880,7 @@
                 <h2>${emp.last} овогтой ${emp.first}</h2>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="label">Бүртгэлийн № (РД)</span>
+                        <span class="label">Регистрийн дугаар</span>
                         <span class="value">${emp.rd}</span>
                     </div>
                     <div class="info-item">
@@ -888,7 +888,7 @@
                         <span class="value">${emp.age}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Төмөр замд ажилласан жил</span>
+                        <span class="label">Нийт ажилласан жил</span>
                         <span class="value">${emp.railYears ? emp.railYears + ' жил' : 'Тодорхойгүй'}</span>
                     </div>
                     <div class="info-item">
@@ -904,7 +904,7 @@
                         <span class="value">${emp.emergencyPhone || 'Тодорхойгүй'}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Мэргэжил / Албан тушаал</span>
+                        <span class="label">Албан тушаал</span>
                         <span class="value">${emp.job}</span>
                     </div>
                     <div class="info-item">
@@ -928,11 +928,11 @@
                         <span class="value">${emp.address}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Цусны бүлэг</span>
-                        <span class="value">${emp.bloodType || 'Тодорхойгүй'}</span>
+                        <span class="label">Хувцасны размер <br> (зун/өвөл)</span>
+                        <span class="value">${emp.clothesSize || 'Тодорхойгүй'}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Хувцасны размер</span>
+                        <span class="label">Гутлын размер <br> (зун/өвөл)</span>
                         <span class="value">${emp.uniformSize}</span>
                     </div>
                     <div class="info-item">
@@ -940,11 +940,11 @@
                         <span class="value">${emp.awards}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Шийтгэл</span>
+                        <span class="label">Спорт, урлагийн <br> цол/зэрэг/медаль</span>
                         <span class="value">${emp.penalties}</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">Ур чадвар</span>
+                        <span class="label">Нэмэлт ур чадвар</span>
                         <span class="value">${emp.skills}</span>
                     </div>
                 </div>
@@ -995,7 +995,7 @@
                 <h2><input type="text" id="editLast" value="${emp.last}" style="width:120px"> овогтой <input type="text" id="editFirst" value="${emp.first}" style="width:120px"></h2>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="label">Бүртгэлийн № (РД)</span>
+                        <span class="label">Регистрийн дугаар</span>
                         <input type="text" id="editRd" value="${emp.rd}" class="value">
                     </div>
                     <div class="info-item">
@@ -1003,7 +1003,7 @@
                         <input type="number" id="editAge" value="${emp.age}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Төмөр замд ажилласан жил</span>
+                        <span class="label">Нийт ажилласан хугацаа</span>
                         <input type="number" id="editRailYears" value="${emp.railYears || ''}" class="value" min="0">
                     </div>
                     <div class="info-item">
@@ -1019,7 +1019,7 @@
                         <input type="text" id="editEmergencyPhone" value="${emp.emergencyPhone || ''}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Мэргэжил / Албан тушаал</span>
+                        <span class="label">Албан тушаал</span>
                         <input type="text" id="editJob" value="${emp.job}" class="value">
                     </div>
                     <div class="info-item">
@@ -1046,23 +1046,24 @@
                         <input type="text" id="editAddress" value="${emp.address}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Цусны бүлэг</span>
-                        <input type="text" id="editBloodType" value="${emp.bloodType || ''}" class="value">
+                        <span class="label">Хувцасны размер <br> (зун/өвөл)</span>
+                        <input type="text" id="editClothesSize" value="${emp.clothesSize || ''}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Хувцасны размер</span>
-                        <input type="text" id="editUniformSize" value="${emp.uniformSize}" class="value">
+                        <span class="label">Гутлын размер <br> (зун/өвөл)</span>
+                        <input type="text" id="editUniformSize" value="${emp.uniformSize || ''}" class="value">
                     </div>
+                   
                     <div class="info-item">
                         <span class="label">Шагнал, урамшуулал</span>
                         <input type="text" id="editAwards" value="${emp.awards}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Шийтгэл</span>
+                        <span class="label">Спорт, урлагийн <br> цол/зэрэг/медаль</span>
                         <input type="text" id="editPenalties" value="${emp.penalties}" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Ур чадвар</span>
+                        <span class="label">Нэмэлт ур чадвар</span>
                         <input type="text" id="editSkills" value="${emp.skills}" class="value">
                     </div>
                 </div>
@@ -1087,6 +1088,7 @@
                 emp.place = document.getElementById('editPlace').value;
                 emp.address = document.getElementById('editAddress').value;
                 emp.bloodType = document.getElementById('editBloodType').value;
+                emp.clothesSize = document.getElementById('editClothesSize').value;
                 emp.uniformSize = document.getElementById('editUniformSize').value;
                 emp.awards = document.getElementById('editAwards').value;
                 emp.penalties = document.getElementById('editPenalties').value;
@@ -1112,7 +1114,7 @@
                 <h2><input type="text" id="addLast" placeholder="Овог" style="width:120px"> овогтой <input type="text" id="addFirst" placeholder="Нэр" style="width:120px"></h2>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="label">Бүртгэлийн № (РД)</span>
+                        <span class="label">Регистрийн дугаар</span>
                         <input type="text" id="addRd" class="value">
                     </div>
                     <div class="info-item">
@@ -1120,7 +1122,7 @@
                         <input type="number" id="addAge" class="value">
                     </div>
                     <div class="info-item">
-                        <span class="label">Төмөр замд ажилласан жил</span>
+                        <span class="label">Ажилласан хугацаа</span>
                         <input type="number" id="addRailYears" class="value" min="0" placeholder="Жил">
                     </div>
                     <div class="info-item">
@@ -1167,7 +1169,11 @@
                         <input type="text" id="addBloodType" class="value" placeholder="Жишээ: A+">
                     </div>
                     <div class="info-item">
-                        <span class="label">Хувцасны размер</span>
+                        <span class="label">Хувцасны хэмжээ (зун/өвөл)</span>
+                        <input type="text" id="addClothesSize" class="value" placeholder="Жишээ: M/L">
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Гутлын хэмжээ (зун/өвөл)</span>
                         <input type="text" id="addUniformSize" class="value" placeholder="Жишээ: M">
                     </div>
                     <div class="info-item">
@@ -1175,12 +1181,12 @@
                         <input type="text" id="addAwards" class="value" placeholder="Жишээ: Сар шидэт шагнал">
                     </div>
                     <div class="info-item">
-                        <span class="label">Шийтгэл</span>
+                        <span class="label">Спорт, урлагийн цол/зэрэг</span>
                         <input type="text" id="addPenalties" class="value" placeholder="Жишээ: Ажил хожимдсон">
                     </div>
                     <div class="info-item">
                         <span class="label">Ур чадвар</span>
-                        <input type="text" id="addSkills" class="value" placeholder="Жишээ: Менежмент, харилцаа">
+                        <input type="text" id="addSkills" class="value" placeholder="Жишээ: Мужаан/гагнуурчин/цахилгаанчин">
                     </div>
                 </div>
                 <div style="margin-top:20px;">
@@ -1206,6 +1212,7 @@
                     kids: parseInt(document.getElementById('addKids').value, 10),
                     place: document.getElementById('addPlace').value,
                     address: document.getElementById('addAddress').value,
+                    clothesSize: document.getElementById('addClothesSize').value || '--',
                     uniformSize: document.getElementById('addUniformSize').value || 'M',
                     awards: document.getElementById('addAwards').value || '--',
                     penalties: document.getElementById('addPenalties').value || '--',
