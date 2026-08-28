@@ -569,14 +569,17 @@
       flex-direction: column;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
     }
-    .main.tushaal-expanded {
+    .main.tushaal-expanded,
+    .main.full-screen-page {
       padding: 0;
       overflow: hidden;
     }
-    .main.tushaal-expanded .dashboard {
+    .main.tushaal-expanded .dashboard,
+    .main.full-screen-page .dashboard {
       height: calc(100dvh - var(--topbar-height));
     }
-    .main.tushaal-expanded .content-frame-wrap {
+    .main.tushaal-expanded .content-frame-wrap,
+    .main.full-screen-page .content-frame-wrap {
       height: calc(100dvh - var(--topbar-height));
       min-height: calc(100dvh - var(--topbar-height));
       border-radius: 0;
@@ -584,7 +587,8 @@
       border-right: 0;
       box-shadow: none;
     }
-    .main.tushaal-expanded #content-frame {
+    .main.tushaal-expanded #content-frame,
+    .main.full-screen-page #content-frame {
       min-height: calc(100dvh - var(--topbar-height) - 54px);
     }
     .frame-titlebar {
@@ -725,7 +729,8 @@
       .main {
         padding: 12px;
       }
-      .main.tushaal-expanded {
+      .main.tushaal-expanded,
+      .main.full-screen-page {
         padding: 0;
       }
       .content-frame-wrap {
@@ -962,6 +967,18 @@
       </div>
 
       <div class="sidebar-divider"></div>
+
+<div class="sidebar-item">
+        <a href="#" class="sidebar-link danger-link" id="toggle-alert" data-page-key="Ажлын бүртгэл">
+          <i class="fa fa-sitemap"></i> Ажлын бүртгэл
+        </a>
+      </div>
+
+      <div class="sidebar-item">
+        <a href="#" class="sidebar-link danger-link" id="toggle-alert" data-page-key="Хурлын тэмдэглэл">
+          <i class="fa fa-sitemap"></i> Хурлын тэмдэглэл
+        </a>
+      </div>
 
       <div class="sidebar-item">
         <a href="#" class="sidebar-link danger-link" id="toggle-alert" data-page-key="Менежментийн нэгдсэн тогтолцоо">
@@ -1248,7 +1265,9 @@
     'Паспортын үзлэг': 'passport.html',
     'Замын техникийн байдал': 'tech.html',
     'Хэсгийн танилцуулга': 'heseg.html',
-    'Бүртгэл': 'bvrtgel.html'
+    'Бүртгэл': 'bvrtgel.html',
+    'Ажлын бүртгэл': 'ajliinBvrtgel.html',
+    'Хурлын тэмдэглэл': 'hural.html'
   };
 
   function findPageElement(pageKey) {
@@ -1647,9 +1666,11 @@
     const main = document.querySelector('.main');
     const titleText = clickedElement.textContent.trim().replace(/\s+/g, ' ');
     const isTushaalPage = pageKey === 'Тушаал, стандарт' || pageKey === 'уулзварын зайн судалгаа';
+    const isFullScreenPage = pageKey === 'Ажлын бүртгэл' || pageKey === 'Хурлын тэмдэглэл';
 
     if (main) {
       main.classList.toggle('tushaal-expanded', isTushaalPage);
+      main.classList.toggle('full-screen-page', isFullScreenPage);
     }
 
     frame.src = resolvePageSrc(pageKey, titleText);
