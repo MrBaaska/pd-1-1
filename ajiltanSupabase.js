@@ -1,6 +1,10 @@
 // Supabase data layer for ajiltan.html (Employee Info pilot).
 // Scope: ONLY the employee registry + monthly scoreboard for this one page.
 // Do not reuse for other pages/projects.
+//
+// Multi-project note: every shared link is ?id=<project_id>. All reads/writes
+// are scoped to that project_id; RLS on the Supabase side additionally
+// requires the project_id to exist in the `projects` table and be active.
 (function () {
   'use strict';
 
@@ -13,11 +17,29 @@
 
   const LEGACY_EMPLOYEES_KEY = 'ubtz-employee-registry';
   const LEGACY_SCOREBOARD_KEY = 'ubtz-employee-scoreboard';
-  const MIGRATION_DONE_FLAG = 'ubtz-supabase-migration-done';
+  const MIGRATION_DONE_FLAG_PREFIX = 'ubtz-supabase-migration-done-';
+
+  function getProjectIdFromUrl() {
+    const raw = new URLSearchParams(window.location.search).get('id');
+    return raw ? raw.trim() : null;
+  }
+
+  // Returns the project row if projectId exists and is active, otherwise null.
+  async function fetchProject(projectId) {
+    const { data, error } = await client
+      .from('projects')
+      .select('id, name, is_active')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data || data.is_active === false) return null;
+    return data;
+  }
 
   function rowToEmployee(row) {
     return {
       id: row.id,
+      projectId: row.project_id,
       scoreKey: row.legacy_score_key || row.id,
       rd: row.rd || '',
       last: row.last_name || '',
@@ -42,8 +64,9 @@
     };
   }
 
-  function employeeToRow(emp) {
+  function employeeToRow(emp, projectId) {
     return {
+      project_id: projectId,
       legacy_score_key: emp.scoreKey || null,
       rd: emp.rd || null,
       last_name: emp.last || null,
@@ -68,75 +91,83 @@
     };
   }
 
-  async function fetchEmployees() {
+  async function fetchEmployees(projectId) {
     const { data, error } = await client
       .from('employees')
       .select('*')
+      .eq('project_id', projectId)
       .order('created_at', { ascending: true });
     if (error) throw error;
     return (data || []).map(rowToEmployee);
   }
 
-  async function fetchScores(year) {
+  async function fetchScores(year, projectId) {
     const { data, error } = await client
       .from('employee_scores')
       .select('employee_id, month_index, score')
-      .eq('year', year);
+      .eq('year', year)
+      .eq('project_id', projectId);
     if (error) throw error;
     return data || [];
   }
 
-  async function insertEmployee(emp) {
+  async function insertEmployee(emp, projectId) {
     const { data, error } = await client
       .from('employees')
-      .insert(employeeToRow(emp))
+      .insert(employeeToRow(emp, projectId))
       .select()
       .single();
     if (error) throw error;
     return rowToEmployee(data);
   }
 
-  async function updateEmployee(id, emp) {
+  async function updateEmployee(id, emp, projectId) {
     const { data, error } = await client
       .from('employees')
-      .update(employeeToRow(emp))
+      .update(employeeToRow(emp, projectId))
       .eq('id', id)
+      .eq('project_id', projectId)
       .select()
       .single();
     if (error) throw error;
     return rowToEmployee(data);
   }
 
-  async function deleteEmployee(id) {
-    const { error } = await client.from('employees').delete().eq('id', id);
+  async function deleteEmployee(id, projectId) {
+    const { error } = await client
+      .from('employees')
+      .delete()
+      .eq('id', id)
+      .eq('project_id', projectId);
     if (error) throw error;
   }
 
-  async function upsertScore(employeeId, year, monthIndex, score) {
+  async function upsertScore(employeeId, year, monthIndex, score, projectId) {
     if (score === null || score === undefined) {
       const { error } = await client
         .from('employee_scores')
         .delete()
         .eq('employee_id', employeeId)
         .eq('year', year)
-        .eq('month_index', monthIndex);
+        .eq('month_index', monthIndex)
+        .eq('project_id', projectId);
       if (error) throw error;
       return;
     }
     const { error } = await client
       .from('employee_scores')
       .upsert(
-        { employee_id: employeeId, year: year, month_index: monthIndex, score: score },
+        { project_id: projectId, employee_id: employeeId, year: year, month_index: monthIndex, score: score },
         { onConflict: 'employee_id,year,month_index' }
       );
     if (error) throw error;
   }
 
-  async function upsertEmployeeByLegacyKey(emp) {
-    const payload = employeeToRow(emp);
+  async function upsertEmployeeByLegacyKey(emp, projectId) {
+    const payload = employeeToRow(emp, projectId);
     const { data, error } = await client
       .from('employees')
-      .upsert(payload, { onConflict: 'legacy_score_key' })
+      .upsert(payload, { onConflict: 'project_id,legacy_score_key' })
       .select()
       .single();
     if (error) throw error;
@@ -147,13 +178,14 @@
     return !!(localStorage.getItem(LEGACY_EMPLOYEES_KEY) || localStorage.getItem(LEGACY_SCOREBOARD_KEY));
   }
 
-  function isMigrationDone() {
-    return localStorage.getItem(MIGRATION_DONE_FLAG) === 'true';
+  function isMigrationDone(projectId) {
+    return localStorage.getItem(MIGRATION_DONE_FLAG_PREFIX + projectId) === 'true';
   }
 
-  // Reads existing LocalStorage data and uploads it to Supabase.
-  // Does NOT delete LocalStorage data. Safe to re-run (dedupes by legacy_score_key).
-  async function migrateLocalStorageToSupabase() {
+  // Reads existing LocalStorage data (from the pre-multi-project version of
+  // this page) and uploads it into the given projectId. Does NOT delete
+  // LocalStorage data. Safe to re-run (dedupes by project_id+legacy_score_key).
+  async function migrateLocalStorageToSupabase(projectId) {
     const report = { employeesOk: 0, employeesFail: 0, scoresOk: 0, scoresFail: 0, errors: [] };
 
     let legacyEmployees = [];
@@ -175,7 +207,7 @@
     for (const emp of legacyEmployees) {
       const legacyKey = emp.scoreKey || (emp.rd || `${emp.last}-${emp.first}`).trim().replace(/\s+/g, '-') || `employee-${Date.now()}`;
       try {
-        const saved = await upsertEmployeeByLegacyKey({ ...emp, scoreKey: legacyKey });
+        const saved = await upsertEmployeeByLegacyKey({ ...emp, scoreKey: legacyKey }, projectId);
         keyToId[legacyKey] = saved.id;
         report.employeesOk += 1;
       } catch (err) {
@@ -199,7 +231,7 @@
       for (const monthIndex of Object.keys(monthMap)) {
         const score = monthMap[monthIndex];
         try {
-          await upsertScore(employeeId, currentYear, Number(monthIndex), Number(score));
+          await upsertScore(employeeId, currentYear, Number(monthIndex), Number(score), projectId);
           report.scoresOk += 1;
         } catch (err) {
           report.scoresFail += 1;
@@ -208,12 +240,14 @@
       }
     }
 
-    localStorage.setItem(MIGRATION_DONE_FLAG, 'true');
+    localStorage.setItem(MIGRATION_DONE_FLAG_PREFIX + projectId, 'true');
     return report;
   }
 
   window.AjiltanSupabase = {
     client,
+    getProjectIdFromUrl,
+    fetchProject,
     fetchEmployees,
     fetchScores,
     insertEmployee,

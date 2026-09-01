@@ -597,6 +597,7 @@
             <div><button id="migrateBtn" type="button">Supabase руу шилжүүлэх</button></div>
             <pre id="migrationReport" style="display:none"></pre>
         </div>
+        <div id="projectErrorBanner" class="data-banner error"></div>
         <div id="loadErrorBanner" class="data-banner error"></div>
 
         <div class="search-wrapper">
@@ -717,6 +718,7 @@
         // arrays are populated asynchronously by initApp() on page load.
         let employees = [];
         let scoreboardData = {};
+        let currentProjectId = null;
         const currentScoreYear = new Date().getFullYear();
 
         const bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -755,19 +757,24 @@
             banner.innerHTML = `<strong>Supabase-тэй холбогдоход алдаа гарлаа.</strong> ${err && err.message ? err.message : err}<br>supabaseConfig.js доторх SUPABASE_URL, SUPABASE_ANON_KEY утгуудыг шалгана уу.`;
         }
 
-        async function seedDefaultEmployees() {
-            for (let i = 0; i < defaultEmployees.length; i += 1) {
-                const emp = normalizeEmployee({ ...defaultEmployees[i] }, i);
-                try {
-                    await window.AjiltanSupabase.insertEmployee(emp);
-                } catch (err) {
-                    console.warn('Unable to seed default employee', emp, err);
-                }
-            }
+        function showProjectError(message) {
+            const banner = document.getElementById('projectErrorBanner');
+            if (!banner) return;
+            banner.classList.add('active');
+            banner.innerHTML = message;
+            // No valid project to work with: hide the rest of the UI instead of
+            // falling back to an unrelated local record.
+            const hideEls = ['searchInput', 'mainActions', 'allEmployees', 'analyticsPanel'];
+            hideEls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            const scoreboardSection = document.querySelector('.scoreboard-section');
+            if (scoreboardSection) scoreboardSection.style.display = 'none';
         }
 
         async function loadScoreboardData() {
-            const rows = await window.AjiltanSupabase.fetchScores(currentScoreYear);
+            const rows = await window.AjiltanSupabase.fetchScores(currentScoreYear, currentProjectId);
             const map = {};
             rows.forEach(row => {
                 const emp = employees.find(e => e.id === row.employee_id);
@@ -779,7 +786,7 @@
         }
 
         async function reloadDataFromSupabase() {
-            employees = await window.AjiltanSupabase.fetchEmployees();
+            employees = await window.AjiltanSupabase.fetchEmployees(currentProjectId);
             employees.forEach(normalizeEmployee);
             await loadScoreboardData();
         }
@@ -787,7 +794,7 @@
         function showMigrationBannerIfNeeded() {
             const banner = document.getElementById('migrationBanner');
             if (!banner) return;
-            const shouldShow = window.AjiltanSupabase.hasLegacyData() && !window.AjiltanSupabase.isMigrationDone();
+            const shouldShow = window.AjiltanSupabase.hasLegacyData() && !window.AjiltanSupabase.isMigrationDone(currentProjectId);
             banner.classList.toggle('active', shouldShow);
         }
 
@@ -796,7 +803,7 @@
             const reportEl = document.getElementById('migrationReport');
             if (btn) { btn.disabled = true; btn.textContent = 'Шилжүүлж байна...'; }
             try {
-                const report = await window.AjiltanSupabase.migrateLocalStorageToSupabase();
+                const report = await window.AjiltanSupabase.migrateLocalStorageToSupabase(currentProjectId);
                 await reloadDataFromSupabase();
                 showAllEmployees();
                 if (reportEl) {
@@ -817,18 +824,34 @@
         }
 
         async function initApp() {
+            const projectId = window.AjiltanSupabase.getProjectIdFromUrl();
+            if (!projectId) {
+                showProjectError('<strong>Холбоос дутуу байна.</strong> Энэ хуудсыг нээхийн тулд линкэд <code>?id=ТАНЫ_ID</code> байх ёстой. Жишээ нь: <code>ajiltan.html?id=A001</code>.');
+                return;
+            }
+
+            let project;
+            try {
+                project = await window.AjiltanSupabase.fetchProject(projectId);
+            } catch (err) {
+                console.error('Failed to validate project id', err);
+                showLoadError(err);
+                return;
+            }
+
+            if (!project) {
+                showProjectError(`<strong>Линк хүчингүй байна.</strong> "${projectId}" гэсэн ID бүртгэлд олдсонгүй эсвэл идэвхгүй болсон байна. Зөв линкээ шалгана уу.`);
+                return;
+            }
+
+            currentProjectId = project.id;
+
             showMigrationBannerIfNeeded();
             const migrateBtn = document.getElementById('migrateBtn');
             if (migrateBtn) migrateBtn.onclick = runMigration;
 
             try {
-                employees = await window.AjiltanSupabase.fetchEmployees();
-                if (employees.length === 0 && !window.AjiltanSupabase.hasLegacyData()) {
-                    await seedDefaultEmployees();
-                    employees = await window.AjiltanSupabase.fetchEmployees();
-                }
-                employees.forEach(normalizeEmployee);
-                await loadScoreboardData();
+                await reloadDataFromSupabase();
             } catch (err) {
                 console.error('Failed to load data from Supabase', err);
                 showLoadError(err);
@@ -1100,7 +1123,7 @@
             }
 
             try {
-                await window.AjiltanSupabase.deleteEmployee(employee.id);
+                await window.AjiltanSupabase.deleteEmployee(employee.id, currentProjectId);
             } catch (err) {
                 alert('Устгахад алдаа гарлаа: ' + (err.message || err));
                 return;
@@ -1227,7 +1250,7 @@
                 const saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = true;
                 try {
-                    await window.AjiltanSupabase.updateEmployee(emp.id, updated);
+                    await window.AjiltanSupabase.updateEmployee(emp.id, updated, currentProjectId);
                     Object.assign(emp, updated);
                 } catch (err) {
                     alert('Хадгалахад алдаа гарлаа: ' + (err.message || err));
@@ -1368,7 +1391,7 @@
                 const addSaveBtn = document.getElementById('addSaveBtn');
                 addSaveBtn.disabled = true;
                 try {
-                    const saved = await window.AjiltanSupabase.insertEmployee(newEmp);
+                    const saved = await window.AjiltanSupabase.insertEmployee(newEmp, currentProjectId);
                     employees.push(saved);
                 } catch (err) {
                     alert('Ажилтан нэмэхэд алдаа гарлаа: ' + (err.message || err));
@@ -1672,7 +1695,7 @@
             const emp = employees.find(e => getEmployeeScoreKey(e) === scoreKey);
             if (!emp || !emp.id) return;
             try {
-                await window.AjiltanSupabase.upsertScore(emp.id, currentScoreYear, monthIndex, value);
+                await window.AjiltanSupabase.upsertScore(emp.id, currentScoreYear, monthIndex, value, currentProjectId);
             } catch (err) {
                 console.warn('Unable to save score to Supabase', err);
             }
