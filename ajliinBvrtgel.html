@@ -155,6 +155,12 @@
 
   .empty-row td{padding:34px;text-align:center;color:var(--ink-dim);font-family:'IBM Plex Mono',monospace;font-size:.8rem;}
 
+  .del-btn{
+    border:1px solid var(--signal-red);background:var(--signal-red-bg);color:var(--signal-red);
+    border-radius:6px;width:26px;height:26px;line-height:1;cursor:pointer;font-size:.8rem;
+  }
+  .del-btn:hover{background:var(--signal-red);color:#fff;}
+
   /* ---------- charts grid ---------- */
   .chart-lead{padding:22px;border-bottom:1px solid var(--line);}
   .chart-lead .h{height:280px;position:relative;}
@@ -261,7 +267,7 @@
             <tr>
               <th>Он сар өдөр</th><th>Хийсэн ажил</th><th>Төлөвлөгөөний дагуу</th><th>Хүн </th>
               <th>Ажил удирдагч</th><th>Замчин-Дохиочин</th><th>Г/т график</th>
-              <th>Ажлын байрны хорио хамгаалалт</th><th>Тетра холбоо</th><th>Ажлын байршил</th><th>Цаг агаар</th>
+              <th>Ажлын байрны хорио хамгаалалт</th><th>Тетра холбоо</th><th>Ажлын байршил</th><th>Цаг агаар</th><th>Үйлдэл</th>
             </tr>
           </thead>
           <tbody id="tableBody"></tbody>
@@ -308,13 +314,29 @@
 const reportForm = document.getElementById('reportForm');
 const tableBody = document.getElementById('tableBody');
 
-// In-memory өгөгдлийн сан (уг мэдээллийг эндээс download/export хийж, өөрийн серверт localStorage-той хувилбараар ажиллуулж болно)
-let reportData = [
+// localStorage-д хадгалагдсан өгөгдлийг ачаалах, байхгүй бол анхны жишээ өгөгдлөөр эхлүүлэх
+const STORAGE_KEY = 'ajliinBvrtgelData';
+const defaultReportData = [
   { date:'2026-08-28', work:'ушп', plan:'тийм', workers:5, leader:'Бат', signaler:'Болд', movement:'тийм', safety:'СЦБ', comm:'тийм', weather:'тахир тойруу', weatherCondition:'Салхитай' },
   { date:'2026-08-27', work:'зам засвар', plan:'тийм', workers:8, leader:'Бат', signaler:'Мөнх', movement:'тийм', safety:'Дохио тэмдэгт', comm:'тийм', weather:'шулуун замд', weatherCondition:'Бороотой' },
   { date:'2026-08-26', work:'бүрхүүл солих', plan:'үгүй', workers:4, leader:'Оюун', signaler:'Болд', movement:'үгүй', safety:'Анхаарамж маягт', comm:'гэмтэлтэй', weather:'бороо', weatherCondition:'Цастай' },
   { date:'2026-08-25', work:'хяналтын үзлэг', plan:'тийм', workers:6, leader:'Оюун', signaler:'Мөнх', movement:'тийм', safety:'СЦБ', comm:'тийм', weather:'манан', weatherCondition:'Манантай' }
 ];
+
+function loadReportData(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return Array.isArray(saved) ? saved : defaultReportData;
+  } catch(e) {
+    return defaultReportData;
+  }
+}
+
+function saveReportData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reportData));
+}
+
+let reportData = loadReportData();
 
 let trendChart, planChart, safetyChart, commChart, weatherChart, weatherConditionChart;
 
@@ -341,9 +363,9 @@ function pill(value, kind){
 function renderTable(){
   tableBody.innerHTML = '';
   if(reportData.length === 0){
-    tableBody.innerHTML = `<tr class="empty-row"><td colspan="11">Мэдээлэл алга — дээрх маягтаар эхний бичлэгээ нэмнэ үү</td></tr>`;
+    tableBody.innerHTML = `<tr class="empty-row"><td colspan="12">Мэдээлэл алга — дээрх маягтаар эхний бичлэгээ нэмнэ үү</td></tr>`;
   } else {
-    reportData.forEach(item=>{
+    reportData.forEach((item, index)=>{
       const row = document.createElement('tr');
       row.innerHTML = `
         <td class="mono">${item.date}</td>
@@ -356,11 +378,18 @@ function renderTable(){
         <td>${pill(item.safety,'safety')}</td>
         <td>${pill(item.comm,'comm')}</td>
         <td>${pill(item.weather,'weather')}</td>
-        <td>${item.weatherCondition || '—'}</td>`;
+        <td>${item.weatherCondition || '—'}</td>
+        <td><button type="button" class="del-btn" onclick="deleteReportRow(${index})" title="Устгах">✕</button></td>`;
       tableBody.appendChild(row);
     });
   }
   updateCharts();
+}
+
+function deleteReportRow(index){
+  reportData.splice(index, 1);
+  saveReportData();
+  renderTable();
 }
 
 function countBy(key){
@@ -502,6 +531,7 @@ reportForm.addEventListener('submit', function(e){
     weather: document.getElementById('weatherSelect').value,
     weatherCondition: document.getElementById('weatherConditionSelect').value
   });
+  saveReportData();
   renderTable();
   reportForm.reset();
 });

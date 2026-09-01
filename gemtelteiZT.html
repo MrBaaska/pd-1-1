@@ -244,11 +244,12 @@
         }
 
         td {
-            padding: 12px;
+            padding: 8px;
             border: 1px solid rgba(226, 232, 240, 0.95);
             color: var(--text-main);
             vertical-align: middle;
             text-align: center;
+            font-size: 12px;
             background: rgba(255, 255, 255, 0.96);
         }
 
@@ -269,10 +270,12 @@
         /* Inputs inside table */
         table input, table select {
             width: 100%;
-            padding: 10px 12px;
+            padding: 8px;
             border: 1px solid rgba(203, 213, 225, 0.88);
             border-radius: 10px;
-            font-size: 13px;
+            font-size: 12px;
+            text-align: center;
+            box-sizing: border-box;
             background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
             transition: var(--transition);
             color: var(--text-main);
@@ -654,7 +657,7 @@
                         <th rowspan="2" style="width: 70px;">Үйлдэл</th>
                     </tr>
                     <tr>
-                        <th style="width: 130px;">Байрлал</th>
+                        <th style="width: 210px;">Байрлал</th>
                         <th style="width: 100px;">Жирээ</th>
                         <th style="width: 80px;">Он</th>
                         <th style="width: 100px;">Төрөл</th>
@@ -1141,11 +1144,22 @@
             });
             numHtml += `</select>`;
 
+            const loc = parseLocation(row.location);
+
             tr.innerHTML = `
                 <td>${index + 1}</td>
                 <td><input type="date" value="${row.dateFound || ''}" oninput="triggerAutoSave()"></td>
                 <td><input type="text" value="${row.detector || ''}" placeholder="Жишээ: ПЧОП..." oninput="triggerAutoSave()"></td>
-                <td><input type="text" value="${row.location || ''}" placeholder="Байрлал" oninput="triggerAutoSave()"></td>
+                <td>
+                    <div class="location-inputs" style="display:flex; gap:2px; align-items:center; justify-content:center; font-size:12px;">
+                        <input type="number" class="loc-km" value="${loc.km}" placeholder="км" title="Километр" oninput="triggerAutoSave()" style="width:48px; font-size:12px; text-align:center; padding:2px 1px; box-sizing:border-box;">
+                        <span style="font-size:12px; width:16px; text-align:center; flex-shrink:0;">км</span>
+                        <input type="number" class="loc-pk" value="${loc.pk}" placeholder="пк" title="Пикет" oninput="triggerAutoSave()" style="width:38px; font-size:12px; text-align:center; padding:2px 1px; box-sizing:border-box;">
+                        <span style="font-size:12px; width:16px; text-align:center; flex-shrink:0;">пк</span>
+                        <input type="number" class="loc-ue" value="${loc.ue}" placeholder="үе" title="Үе" oninput="triggerAutoSave()" style="width:38px; font-size:12px; text-align:center; padding:2px 1px; box-sizing:border-box;">
+                        <span style="font-size:12px; width:16px; text-align:center; flex-shrink:0;">үе</span>
+                    </div>
+                </td>
                 <td>${tireHtml}</td>
                 <td><input type="text" value="${row.year || ''}" placeholder="Он" oninput="triggerAutoSave()"></td>
                 <td>${typeHtml}</td>
@@ -1220,22 +1234,39 @@
             if (row.querySelector('.empty-state')) return;
             const inputs = row.querySelectorAll('input, select');
             if(inputs.length > 0) {
+                const km = row.querySelector('.loc-km').value;
+                const pk = row.querySelector('.loc-pk').value;
+                const ue = row.querySelector('.loc-ue').value;
                 data.push({
                     dateFound: inputs[0].value,
                     detector: inputs[1].value,
-                    location: inputs[2].value,
-                    tire: inputs[3].value,
-                    year: inputs[4].value,
-                    railType: inputs[5].value,
-                    railLength: inputs[6].value,
-                    number: inputs[7].value,
-                    depth: inputs[8].value,
-                    length: inputs[9].value,
-                    replaceNote: inputs[10].value
+                    location: formatLocation(km, pk, ue),
+                    tire: inputs[5].value,
+                    year: inputs[6].value,
+                    railType: inputs[7].value,
+                    railLength: inputs[8].value,
+                    number: inputs[9].value,
+                    depth: inputs[10].value,
+                    length: inputs[11].value,
+                    replaceNote: inputs[12].value
                 });
             }
         });
         return data;
+    }
+
+    // Байршлын мөрийг "X км Y пк Z үе" хэлбэрт задлах/цуглуулах
+    function parseLocation(str) {
+        const match = /(\d+)\s*км.*?(\d+)\s*пк.*?(\d+)\s*ү/u.exec(str || '');
+        if (match) {
+            return { km: match[1], pk: match[2], ue: match[3] };
+        }
+        return { km: '', pk: '', ue: '' };
+    }
+
+    function formatLocation(km, pk, ue) {
+        if (!km && !pk && !ue) return '';
+        return `${km || 0} км ${pk || 0} пк ${ue || 0} үе`;
     }
 
     // Автоматаар хадгалах функц (Autosave)

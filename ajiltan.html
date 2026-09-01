@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ажилтнуудын бүртгэл</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #2563eb;
@@ -515,6 +516,51 @@
             padding: 12px;
         }
 
+        .data-banner {
+            display: none;
+            max-width: 900px;
+            margin: 0 auto 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .data-banner.active {
+            display: block;
+        }
+
+        .data-banner.migration {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+
+        .data-banner.error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        .data-banner button {
+            margin-top: 10px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .data-banner pre {
+            white-space: pre-wrap;
+            font-size: 0.85em;
+            margin-top: 10px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
             .info-grid { 
                 grid-template-columns: 1fr; 
@@ -544,6 +590,14 @@
             <h1>ЗАМЫН  1-Р ХЭСГИЙН АЖИЛЧДЫН СУДАЛГАА, БҮРТГЭЛ</h1>
             <p id="employeeCountText">Нийт 0 ажилтны мэдээллийн сан</p>
         </header>
+
+        <div id="migrationBanner" class="data-banner migration">
+            <strong>Хуучин LocalStorage өгөгдөл олдлоо.</strong>
+            Энэ өгөгдлийг Supabase руу шилжүүлэх үү? LocalStorage дахь өгөгдөл автоматаар устгагдахгүй.
+            <div><button id="migrateBtn" type="button">Supabase руу шилжүүлэх</button></div>
+            <pre id="migrationReport" style="display:none"></pre>
+        </div>
+        <div id="loadErrorBanner" class="data-banner error"></div>
 
         <div class="search-wrapper">
             <input type="text" id="searchInput" placeholder="🔍 Ажилтны нэрээр хайх..." autocomplete="off">
@@ -634,18 +688,9 @@
         </section>
     </div>
 
+    <script src="supabaseConfig.js"></script>
+    <script src="ajiltanSupabase.js"></script>
     <script>
-        const STORAGE_KEY = 'ubtz-employee-registry';
-        const storedEmployees = (function getStored() {
-            try {
-                const value = localStorage.getItem(STORAGE_KEY);
-                return value ? JSON.parse(value) : null;
-            } catch (err) {
-                console.warn('Unable to parse stored employees', err);
-                return null;
-            }
-        })();
-
         const defaultEmployees = [
             { rd: "AA850101", last: "Бат", first: "Болд", age: 41, phone: "99112233", address: "БЗД, 13-р хороолол", kids: 2, job: "Мастер", gender: "Эр", edu: "Магистр", place: "Улаанбаатар" },
             { rd: "ББ900512", last: "Сараа", first: "Туяа", age: 36, phone: "88001122", address: "ХУД, Ривер гарден", kids: 1, job: "Бригадын дарга", gender: "Эм", edu: "Бакалавр", place: "Дархан хот" },
@@ -668,44 +713,129 @@
             { rd: "УУ880424", last: "Эрдэнэ", first: "Оюун", age: 38, phone: "99008877", address: "БЗД, КТМС орчим", kids: 3, job: "Шинэ ажилтан", gender: "Эм", edu: "Магистр", place: "Хөвсгөл аймаг" },
             { rd: "ФФ950606", last: "Ариун", first: "Мэргэн", age: 31, phone: "95857565", address: "СБД, 100 айл", kids: 1, job: "Шинэ ажилтан", gender: "Эр", edu: "Тусгай дунд", place: "Улаанбаатар" }
         ];
-        const employees = storedEmployees && Array.isArray(storedEmployees) && storedEmployees.length > 0
-            ? storedEmployees
-            : defaultEmployees;
+        // Primary data source is now Supabase (see ajiltanSupabase.js). These
+        // arrays are populated asynchronously by initApp() on page load.
+        let employees = [];
+        let scoreboardData = {};
+        const currentScoreYear = new Date().getFullYear();
 
         const bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-        function persistEmployees() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-            } catch (err) {
-                console.warn('Unable to persist employees', err);
-            }
-        }
-        employees.forEach((emp, index) => {
-            if (!('uniformSize' in emp)) emp.uniformSize = 'M';
-            if (!('awards' in emp)) emp.awards = 'Үнэлгээний шагналгүй';
-            if (!('penalties' in emp)) emp.penalties = 'Шийтгэлгүй';
-            if (!('skills' in emp)) emp.skills = 'Ур чадвар тодорхойгүй';
-            if (!('gender' in emp)) emp.gender = 'Эр';
-            if (!('railYears' in emp)) {
+
+        function normalizeEmployee(emp, index) {
+            if (!('uniformSize' in emp) || !emp.uniformSize) emp.uniformSize = 'M';
+            if (!('awards' in emp) || !emp.awards) emp.awards = 'Үнэлгээний шагналгүй';
+            if (!('penalties' in emp) || !emp.penalties) emp.penalties = 'Шийтгэлгүй';
+            if (!('skills' in emp) || !emp.skills) emp.skills = 'Ур чадвар тодорхойгүй';
+            if (!('gender' in emp) || !emp.gender) emp.gender = 'Эр';
+            if (!('railYears' in emp) || emp.railYears === '' || emp.railYears === null || emp.railYears === undefined) {
                 const computedYears = typeof emp.age === 'number' ? Math.max(1, emp.age - 20) : 1;
                 emp.railYears = computedYears;
             }
-            if (!('email' in emp)) {
+            if (!('email' in emp) || !emp.email) {
                 const normalizedRd = (emp.rd || (`emp${index + 1}`)).toLowerCase().replace(/\s+/g, '');
                 emp.email = `${normalizedRd}@ubtz.mn`;
             }
-            if (!('bloodType' in emp)) {
+            if (!('bloodType' in emp) || !emp.bloodType) {
                 emp.bloodType = bloodTypeOptions[index % bloodTypeOptions.length];
             }
-            if (!('emergencyPhone' in emp)) {
+            if (!('emergencyPhone' in emp) || !emp.emergencyPhone) {
                 emp.emergencyPhone = (99110000 + index).toString();
             }
-            if (!('scoreKey' in emp)) {
+            if (!('scoreKey' in emp) || !emp.scoreKey) {
                 const fallback = (emp.rd || `${emp.last}-${emp.first}-${index}`).toString();
                 emp.scoreKey = fallback.trim().replace(/\s+/g, '-');
             }
-        });
-        persistEmployees();
+            return emp;
+        }
+
+        function showLoadError(err) {
+            const banner = document.getElementById('loadErrorBanner');
+            if (!banner) return;
+            banner.classList.add('active');
+            banner.innerHTML = `<strong>Supabase-тэй холбогдоход алдаа гарлаа.</strong> ${err && err.message ? err.message : err}<br>supabaseConfig.js доторх SUPABASE_URL, SUPABASE_ANON_KEY утгуудыг шалгана уу.`;
+        }
+
+        async function seedDefaultEmployees() {
+            for (let i = 0; i < defaultEmployees.length; i += 1) {
+                const emp = normalizeEmployee({ ...defaultEmployees[i] }, i);
+                try {
+                    await window.AjiltanSupabase.insertEmployee(emp);
+                } catch (err) {
+                    console.warn('Unable to seed default employee', emp, err);
+                }
+            }
+        }
+
+        async function loadScoreboardData() {
+            const rows = await window.AjiltanSupabase.fetchScores(currentScoreYear);
+            const map = {};
+            rows.forEach(row => {
+                const emp = employees.find(e => e.id === row.employee_id);
+                if (!emp) return;
+                map[emp.scoreKey] = map[emp.scoreKey] || {};
+                map[emp.scoreKey][row.month_index] = row.score;
+            });
+            scoreboardData = map;
+        }
+
+        async function reloadDataFromSupabase() {
+            employees = await window.AjiltanSupabase.fetchEmployees();
+            employees.forEach(normalizeEmployee);
+            await loadScoreboardData();
+        }
+
+        function showMigrationBannerIfNeeded() {
+            const banner = document.getElementById('migrationBanner');
+            if (!banner) return;
+            const shouldShow = window.AjiltanSupabase.hasLegacyData() && !window.AjiltanSupabase.isMigrationDone();
+            banner.classList.toggle('active', shouldShow);
+        }
+
+        async function runMigration() {
+            const btn = document.getElementById('migrateBtn');
+            const reportEl = document.getElementById('migrationReport');
+            if (btn) { btn.disabled = true; btn.textContent = 'Шилжүүлж байна...'; }
+            try {
+                const report = await window.AjiltanSupabase.migrateLocalStorageToSupabase();
+                await reloadDataFromSupabase();
+                showAllEmployees();
+                if (reportEl) {
+                    reportEl.style.display = 'block';
+                    reportEl.textContent =
+                        `Ажилтан: ${report.employeesOk} амжилттай, ${report.employeesFail} алдаатай\n` +
+                        `Оноо: ${report.scoresOk} амжилттай, ${report.scoresFail} алдаатай` +
+                        (report.errors.length ? `\n\nАлдаанууд:\n${report.errors.join('\n')}` : '');
+                }
+            } catch (err) {
+                if (reportEl) {
+                    reportEl.style.display = 'block';
+                    reportEl.textContent = 'Шилжүүлэлт амжилтгүй боллоо: ' + (err.message || err);
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Supabase руу шилжүүлэх'; }
+            }
+        }
+
+        async function initApp() {
+            showMigrationBannerIfNeeded();
+            const migrateBtn = document.getElementById('migrateBtn');
+            if (migrateBtn) migrateBtn.onclick = runMigration;
+
+            try {
+                employees = await window.AjiltanSupabase.fetchEmployees();
+                if (employees.length === 0 && !window.AjiltanSupabase.hasLegacyData()) {
+                    await seedDefaultEmployees();
+                    employees = await window.AjiltanSupabase.fetchEmployees();
+                }
+                employees.forEach(normalizeEmployee);
+                await loadScoreboardData();
+            } catch (err) {
+                console.error('Failed to load data from Supabase', err);
+                showLoadError(err);
+            }
+
+            showAllEmployees();
+        }
 
         const genderChartEl = document.getElementById('genderChart');
         const ageChartEl = document.getElementById('ageChart');
@@ -713,19 +843,8 @@
         const jobChartEl = document.getElementById('jobChart');
         const awardChartEl = document.getElementById('awardChart');
         const analyticsPanel = document.getElementById('analyticsPanel');
-        const SCOREBOARD_KEY = 'ubtz-employee-scoreboard';
         const monthLabels = Array.from({ length: 12 }, (_, index) => `${index + 1} сар`);
         const scoreboardBody = document.getElementById('scoreboardBody');
-        const storedScores = (function getStoredScores() {
-            try {
-                const raw = localStorage.getItem(SCOREBOARD_KEY);
-                return raw ? JSON.parse(raw) : {};
-            } catch (err) {
-                console.warn('Unable to parse scoreboard data', err);
-                return {};
-            }
-        })();
-        const scoreboardData = storedScores && typeof storedScores === 'object' ? storedScores : {};
         const leaderboardCardsEl = document.getElementById('leaderboardCards');
         const employeeCountText = document.getElementById('employeeCountText');
 
@@ -964,7 +1083,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function deleteEmployee(scoreKey, event) {
+        async function deleteEmployee(scoreKey, event) {
             if (event) {
                 event.stopPropagation();
             }
@@ -980,10 +1099,15 @@
                 return;
             }
 
+            try {
+                await window.AjiltanSupabase.deleteEmployee(employee.id);
+            } catch (err) {
+                alert('Устгахад алдаа гарлаа: ' + (err.message || err));
+                return;
+            }
+
             employees.splice(employeeIndex, 1);
             delete scoreboardData[scoreKey];
-            persistEmployees();
-            persistScoreboard();
             document.getElementById('detailView').classList.remove('active');
             showAllEmployees();
         }
@@ -1076,28 +1200,40 @@
                     <button id="cancelBtn" style="margin-left:10px;padding:10px 24px;border-radius:8px;font-size:16px;cursor:pointer;">Болих</button>
                 </div>
             `;
-            document.getElementById('saveBtn').onclick = function() {
-                emp.last = document.getElementById('editLast').value;
-                emp.first = document.getElementById('editFirst').value;
-                emp.rd = document.getElementById('editRd').value;
-                emp.age = parseInt(document.getElementById('editAge').value, 10);
-                emp.phone = document.getElementById('editPhone').value;
-                emp.email = document.getElementById('editEmail').value;
-                emp.emergencyPhone = document.getElementById('editEmergencyPhone').value;
-                emp.railYears = document.getElementById('editRailYears').value;
-                emp.job = document.getElementById('editJob').value;
-                emp.gender = document.getElementById('editGender').value;
-                emp.edu = document.getElementById('editEdu').value;
-                emp.kids = parseInt(document.getElementById('editKids').value, 10);
-                emp.place = document.getElementById('editPlace').value;
-                emp.address = document.getElementById('editAddress').value;
-                emp.bloodType = document.getElementById('editBloodType').value;
-                emp.clothesSize = document.getElementById('editClothesSize').value;
-                emp.uniformSize = document.getElementById('editUniformSize').value;
-                emp.awards = document.getElementById('editAwards').value;
-                emp.penalties = document.getElementById('editPenalties').value;
-                emp.skills = document.getElementById('editSkills').value;
-                persistEmployees();
+            document.getElementById('saveBtn').onclick = async function() {
+                const updated = {
+                    ...emp,
+                    last: document.getElementById('editLast').value,
+                    first: document.getElementById('editFirst').value,
+                    rd: document.getElementById('editRd').value,
+                    age: parseInt(document.getElementById('editAge').value, 10),
+                    phone: document.getElementById('editPhone').value,
+                    email: document.getElementById('editEmail').value,
+                    emergencyPhone: document.getElementById('editEmergencyPhone').value,
+                    railYears: document.getElementById('editRailYears').value,
+                    job: document.getElementById('editJob').value,
+                    gender: document.getElementById('editGender').value,
+                    edu: document.getElementById('editEdu').value,
+                    kids: parseInt(document.getElementById('editKids').value, 10),
+                    place: document.getElementById('editPlace').value,
+                    address: document.getElementById('editAddress').value,
+                    bloodType: document.getElementById('editBloodType').value,
+                    clothesSize: document.getElementById('editClothesSize').value,
+                    uniformSize: document.getElementById('editUniformSize').value,
+                    awards: document.getElementById('editAwards').value,
+                    penalties: document.getElementById('editPenalties').value,
+                    skills: document.getElementById('editSkills').value
+                };
+                const saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                try {
+                    await window.AjiltanSupabase.updateEmployee(emp.id, updated);
+                    Object.assign(emp, updated);
+                } catch (err) {
+                    alert('Хадгалахад алдаа гарлаа: ' + (err.message || err));
+                    saveBtn.disabled = false;
+                    return;
+                }
                 showEmployeeDetail(emp.first);
                 showAllEmployees();
             };
@@ -1198,7 +1334,7 @@
                     <button id="addCancelBtn" style="margin-left:10px;padding:10px 24px;border-radius:8px;font-size:16px;cursor:pointer;">Болих</button>
                 </div>
             `;
-            document.getElementById('addSaveBtn').onclick = function() {
+            document.getElementById('addSaveBtn').onclick = async function() {
                 const addRdValue = document.getElementById('addRd').value;
                 const computedEmail = document.getElementById('addEmail').value || `${(addRdValue || ('new' + Date.now())).toLowerCase().replace(/\s+/g, '')}@ubtz.mn`;
                 const emergencyValue = document.getElementById('addEmergencyPhone').value || document.getElementById('addPhone').value;
@@ -1228,8 +1364,17 @@
                 newEmp.email = computedEmail;
                 newEmp.bloodType = bloodValue;
                 newEmp.emergencyPhone = emergencyValue;
-                employees.push(newEmp);
-                persistEmployees();
+
+                const addSaveBtn = document.getElementById('addSaveBtn');
+                addSaveBtn.disabled = true;
+                try {
+                    const saved = await window.AjiltanSupabase.insertEmployee(newEmp);
+                    employees.push(saved);
+                } catch (err) {
+                    alert('Ажилтан нэмэхэд алдаа гарлаа: ' + (err.message || err));
+                    addSaveBtn.disabled = false;
+                    return;
+                }
                 showAllEmployees();
                 detailView.classList.remove('active');
             };
@@ -1322,14 +1467,6 @@
                 const nameB = `${b.last || ''} ${b.first || ''}`.trim();
                 return nameA.localeCompare(nameB, 'mn');
             });
-        }
-
-        function persistScoreboard() {
-            try {
-                localStorage.setItem(SCOREBOARD_KEY, JSON.stringify(scoreboardData));
-            } catch (err) {
-                console.warn('Unable to persist scoreboard data', err);
-            }
         }
 
         function getScoreValue(scoreKey, monthIndex) {
@@ -1525,14 +1662,20 @@
             });
         }
 
-        function setScoreValue(scoreKey, monthIndex, value) {
+        async function setScoreValue(scoreKey, monthIndex, value) {
             scoreboardData[scoreKey] = scoreboardData[scoreKey] || {};
             if (value === null) {
                 delete scoreboardData[scoreKey][monthIndex];
             } else {
                 scoreboardData[scoreKey][monthIndex] = value;
             }
-            persistScoreboard();
+            const emp = employees.find(e => getEmployeeScoreKey(e) === scoreKey);
+            if (!emp || !emp.id) return;
+            try {
+                await window.AjiltanSupabase.upsertScore(emp.id, currentScoreYear, monthIndex, value);
+            } catch (err) {
+                console.warn('Unable to save score to Supabase', err);
+            }
         }
 
         function updateTotalCell(scoreKey) {
@@ -1572,10 +1715,8 @@
             updateLeaderboardAfterChange();
         }
 
-        // Хуудас ачааллагдахад бүх ажилтнуудыг харуулах
-        window.onload = function() {
-            showAllEmployees();
-        };
+        // Хуудас ачааллагдахад Supabase-с өгөгдөл татаж харуулах
+        window.onload = initApp;
     </script>
 </body>
 </html>
