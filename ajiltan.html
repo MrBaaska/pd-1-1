@@ -719,6 +719,7 @@
         let employees = [];
         let scoreboardData = {};
         let currentProjectId = null;
+        let realtimeChannel = null;
         const currentScoreYear = new Date().getFullYear();
 
         const bloodTypeOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -858,6 +859,11 @@
             }
 
             showAllEmployees();
+
+            realtimeChannel = window.AjiltanSupabase.subscribeToProjectChanges(currentProjectId, scheduleRealtimeRefresh);
+            window.addEventListener('beforeunload', () => {
+                window.AjiltanSupabase.unsubscribe(realtimeChannel);
+            });
         }
 
         const genderChartEl = document.getElementById('genderChart');
@@ -882,19 +888,9 @@
             employeeCountText.textContent = `Нийт ${employees.length} ажилтны мэдээллийн сан`;
         }
 
-        function showAllEmployees() {
+        function renderEmployeesGrid() {
             const grid = document.getElementById('allEmployees');
-            const detailView = document.getElementById('detailView');
-            const searchInput = document.getElementById('searchInput');
-            const mainActions = document.getElementById('mainActions');
-
-            searchInput.value = '';
-            detailView.classList.remove('active');
-            grid.style.display = 'grid';
-            if (mainActions) mainActions.style.display = 'block';
-            toggleAnalyticsPanel(true);
             updateEmployeeCount();
-
             grid.innerHTML = employees.map(emp => `
                 <div class="employee-card" onclick="showEmployeeDetail('${emp.first}')">
                     <div class="employee-card__header">
@@ -911,6 +907,38 @@
             `).join('');
             renderAnalytics();
             renderScoreboard();
+        }
+
+        function showAllEmployees() {
+            const grid = document.getElementById('allEmployees');
+            const detailView = document.getElementById('detailView');
+            const searchInput = document.getElementById('searchInput');
+            const mainActions = document.getElementById('mainActions');
+
+            searchInput.value = '';
+            detailView.classList.remove('active');
+            grid.style.display = 'grid';
+            if (mainActions) mainActions.style.display = 'block';
+            toggleAnalyticsPanel(true);
+            renderEmployeesGrid();
+        }
+
+        // Called on realtime events from other devices/tabs on the same link.
+        // Skips re-rendering while the user is viewing/editing an employee so
+        // remote updates never overwrite an in-progress form.
+        function scheduleRealtimeRefresh() {
+            clearTimeout(scheduleRealtimeRefresh.timer);
+            scheduleRealtimeRefresh.timer = setTimeout(async () => {
+                try {
+                    await reloadDataFromSupabase();
+                    const detailView = document.getElementById('detailView');
+                    if (!detailView.classList.contains('active')) {
+                        renderEmployeesGrid();
+                    }
+                } catch (err) {
+                    console.warn('Realtime refresh failed', err);
+                }
+            }, 400);
         }
 
         function renderAnalytics() {

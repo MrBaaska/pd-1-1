@@ -244,6 +244,30 @@
     return report;
   }
 
+  // Live-syncs multiple devices/tabs open on the same project link: any
+  // insert/update/delete to this project's employees or scores calls onChange
+  // so every open link can refresh and show the same data.
+  function subscribeToProjectChanges(projectId, onChange) {
+    const channel = client
+      .channel('ajiltan-project-' + projectId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'employees', filter: 'project_id=eq.' + projectId },
+        onChange
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'employee_scores', filter: 'project_id=eq.' + projectId },
+        onChange
+      )
+      .subscribe();
+    return channel;
+  }
+
+  function unsubscribe(channel) {
+    if (channel) client.removeChannel(channel);
+  }
+
   window.AjiltanSupabase = {
     client,
     getProjectIdFromUrl,
@@ -257,6 +281,8 @@
     hasLegacyData,
     isMigrationDone,
     migrateLocalStorageToSupabase,
+    subscribeToProjectChanges,
+    unsubscribe,
     LEGACY_EMPLOYEES_KEY,
     LEGACY_SCOREBOARD_KEY
   };
