@@ -922,14 +922,6 @@
 
       <li><a href="#" data-page-key="Үүрэг даалгавар"><i class="fa fa-clipboard-list"></i>Үүрэг даалгавар</a></li>
     </ul>
-    <div class="topbar-status">
-      <div class="mode-badge readonly" id="editModeBadge"><i class="fa fa-eye"></i><span>Харах горим</span></div>
-      <button class="auth-btn" id="editModeButton" type="button">Кодоор нэвтрэх</button>
-      <div class="status-badge">
-        <div class="status-dot"></div>
-      </div>
-      <div class="clock" id="clock">--:--:--</div>
-    </div>
 
   </div>
 </header>
@@ -1058,38 +1050,6 @@
   };
   const FRAME_STORAGE_PREFIX = 'ubtz:autosave:';
 
-  function readEditMode() {
-    try {
-      return sessionStorage.getItem(UI_STORAGE_KEYS.editMode) === 'true';
-    } catch (error) {
-      return false;
-    }
-  }
-
-  function writeEditMode(isEditable) {
-    try {
-      sessionStorage.setItem(UI_STORAGE_KEYS.editMode, isEditable ? 'true' : 'false');
-    } catch (error) {
-      console.warn('Edit mode state write failed:', error);
-    }
-  }
-
-  function updateEditModeUi() {
-    const badge = document.getElementById('editModeBadge');
-    const button = document.getElementById('editModeButton');
-    const editable = readEditMode();
-    if (badge) {
-      badge.classList.toggle('editable', editable);
-      badge.classList.toggle('readonly', !editable);
-      badge.innerHTML = editable
-        ? '<i class="fa fa-pen-to-square"></i><span>Засварлах горим</span>'
-        : '<i class="fa fa-eye"></i><span>Харах горим</span>';
-    }
-    if (button) {
-      button.textContent = editable ? 'Гарах' : 'Кодоор нэвтрэх';
-    }
-  }
-
   function setElementEditability(element, editable) {
     if (!(element instanceof element.ownerDocument.defaultView.HTMLElement)) {
       return;
@@ -1154,7 +1114,7 @@
         return;
       }
 
-      const editable = readEditMode();
+      const editable = false;
       doc.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
         setElementEditability(element, editable);
       });
@@ -1183,11 +1143,11 @@
               return;
             }
             if (node.matches && node.matches('input, textarea, select, button, [contenteditable="true"]')) {
-              setElementEditability(node, readEditMode());
+              setElementEditability(node, false);
             }
             if (node.querySelectorAll) {
               node.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
-                setElementEditability(element, readEditMode());
+                setElementEditability(element, false);
               });
             }
           });
@@ -1198,36 +1158,6 @@
     } catch (error) {
       console.warn('Frame access control binding skipped:', error);
     }
-  }
-
-  function refreshCurrentFrameAccessMode() {
-    const frame = document.getElementById('content-frame');
-    if (frame) {
-      applyFrameAccessMode(frame);
-    }
-    updateEditModeUi();
-  }
-
-  async function handleEditModeButton() {
-    if (readEditMode()) {
-      // Real logout: end the Supabase Auth session and reload to the gate.
-      writeEditMode(false);
-      if (window.AuthClient && window.AuthClient.logout) {
-        await window.AuthClient.logout();
-        return;
-      }
-      refreshCurrentFrameAccessMode();
-      return;
-    }
-
-    // Supabase Auth is the only real security gate now; a signed-in session
-    // (any of the 21 users, or the admin) is sufficient to enter edit mode.
-    const profile = await window.AuthClient.requireAuth();
-    if (!profile) return;
-
-    writeEditMode(true);
-    refreshCurrentFrameAccessMode();
-    alert('Засварлах горим идэвхжлээ.');
   }
 
   function readLastPage() {
@@ -1688,10 +1618,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
-    // Gate the entire dashboard: require a valid, active, role='user'
-    // Supabase session before rendering any navigation or frame content.
-    if (window.AuthClient && window.AuthClient.requireAuth) {
-      const profile = await window.AuthClient.requireAuth();
+    // Always show the login screen first on a fresh open, even if Supabase
+    // restored a persisted session; the user must explicitly authenticate.
+    if (window.AuthClient && window.AuthClient.requireLogin) {
+      const profile = await window.AuthClient.requireLogin();
       if (!profile) return;
     }
 
@@ -1700,9 +1630,6 @@
     const frame = document.getElementById('content-frame');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
-    const editModeButton = document.getElementById('editModeButton');
-
-    updateEditModeUi();
 
     if (frame) {
       frame.addEventListener('load', function() {
@@ -1719,10 +1646,6 @@
 
     if (sidebarOverlay) {
       sidebarOverlay.addEventListener('click', closeSidebar);
-    }
-
-    if (editModeButton) {
-      editModeButton.addEventListener('click', handleEditModeButton);
     }
 
     document.addEventListener('keydown', function(event) {
@@ -1781,14 +1704,6 @@
       }
     }
   });
-
-  // Clock
-  function updateClock() {
-    const now = new Date();
-    document.getElementById('clock').textContent =
-      now.toLocaleTimeString('mn-MN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  }
-  setInterval(updateClock, 1000); updateClock();
 
   // Date
   const d = new Date();
