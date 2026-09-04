@@ -725,7 +725,7 @@ function saveAutosaveData() {
         }
     };
     window.AppData.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(payload))
-        .catch(() => { /* Ignore Supabase write errors (e.g. offline). */ });
+        .catch((err) => { console.error('tech autosave to Supabase failed:', err); });
 }
 
 function scheduleAutosave() {

@@ -531,6 +531,54 @@
             if (!setLocalStorageItemSafe('usageData', JSON.stringify(compactUsageData))) {
                 localStorage.removeItem('usageData');
             }
+
+            // Mirror to Supabase app_data (owner_id = auth.uid()) so Admin can
+            // discover it. Local Google-Sheet sync is left untouched.
+            saveStateToSupabase();
+        }
+
+        // --- Supabase (app_data) canonical mirror -------------------------
+        function saveStateToSupabase() {
+            if (!window.AppData || !window.AppData.setItem) return;
+            const payload = {
+                tools: tools,
+                removedItems: removedItems,
+                usageData: compactUsageDataForStorage(usageData),
+                manualUsageTotal: (manualUsageTotalOverride === null || manualUsageTotalOverride === undefined) ? null : manualUsageTotalOverride
+            };
+            window.AppData.setItem('hatyy_delgets_state', JSON.stringify(payload))
+                .catch(err => console.error('Failed to save hatyy_delgets_state to Supabase', err));
+        }
+
+        async function loadStateFromSupabase() {
+            if (!window.AppData || !window.AppData.getItem) return;
+            try {
+                const raw = await window.AppData.getItem('hatyy_delgets_state');
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return;
+
+                // Only override local state when Supabase actually has data.
+                const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0;
+                const hasUsage = Array.isArray(parsed.usageData) && parsed.usageData.length > 0;
+                const hasRemoved = parsed.removedItems && typeof parsed.removedItems === 'object' && Object.keys(parsed.removedItems).length > 0;
+                if (!hasTools && !hasUsage && !hasRemoved) return;
+
+                if (hasTools) tools = parsed.tools;
+                if (hasRemoved) removedItems = parsed.removedItems;
+                if (hasUsage) usageData = parsed.usageData;
+                if (parsed.manualUsageTotal !== undefined && parsed.manualUsageTotal !== null) {
+                    manualUsageTotalOverride = parsed.manualUsageTotal;
+                }
+
+                ensureUsageTimestamps();
+                setLocalStorageItemSafe('tools', JSON.stringify(tools));
+                setLocalStorageItemSafe('removedItems', JSON.stringify(removedItems));
+                setLocalStorageItemSafe('usageData', JSON.stringify(compactUsageDataForStorage(usageData)));
+                updateUI();
+            } catch (err) {
+                console.error('Failed to load hatyy_delgets_state from Supabase', err);
+            }
         }
 
         function parseEditableNumber(value) {
@@ -2391,6 +2439,11 @@
             setSyncStatus('Мэдээлэл татаж байна...', 'loading');
             fetchLatestSheetState();
             startSheetPolling();
+
+            // Supabase (app_data) canonical mirror: prefer Supabase state over
+            // localStorage so Admin can see this user's data. Non-destructive —
+            // only overwrites local state when Supabase actually has rows.
+            loadStateFromSupabase();
         });
 
         window.addEventListener('storage', event => {

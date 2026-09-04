@@ -884,10 +884,14 @@ function closeReqModal(){ document.getElementById('req-modal').classList.remove(
 function saveReq(){
   reqStaff.total = parseInt(document.getElementById('req-total').value) || 20;
   reqStaff.min   = parseInt(document.getElementById('req-min').value)   || 15;
-  saveAll();
+  saveAll().then(()=>{
+    showToast('Орон тоо хадгалагдлаа');
+  }).catch(err=>{
+    console.error('irts save failed:', err);
+    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
+  });
   closeReqModal();
   renderDaily();
-  showToast('Орон тоо хадгалагдлаа');
 }
 
 // ════════════════════════════════════════════════════════
@@ -945,7 +949,7 @@ function renderDaily(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]){
     attendance[date]={};
-    saveAll();
+    saveAll().catch(err=>console.error('irts autosave (new day) failed:', err));
   }
   renderStats(date);
   const tbody=document.getElementById('daily-tbody');
@@ -987,17 +991,25 @@ function changeStatus(sel, dateStr){
   const s=sel.value;
   sel.className='status-select '+(STATUS_CSS[s]||'ss-empty');
   attendance[dateStr]={...getDayAttendance(dateStr),[id]:s};
-  saveAll();
+  saveAll().then(()=>{
+    showToast('Хадгалагдлаа');
+  }).catch(err=>{
+    console.error('irts save failed:', err);
+    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
+  });
   renderStats(dateStr);
-  showToast('Хадгалагдлаа');
 }
 
 function saveCurrentDay(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]) attendance[date]={};
-  saveAll();
+  saveAll().then(()=>{
+    showToast(fmtDate(date)+' өдрийн мэдээлэл хадгалагдлаа');
+  }).catch(err=>{
+    console.error('irts save failed:', err);
+    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
+  });
   renderStats(date);
-  showToast(fmtDate(date)+' өдрийн мэдээлэл хадгалагдлаа');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1292,10 +1304,14 @@ function saveEmployee(){
 function deleteEmployee(id){
   if(!confirm('Энэ ажилтны бүртгэлийг устгах уу?')) return;
   employees=employees.filter(e=>e.id!==id);
-  saveAll();
+  saveAll().then(()=>{
+    showToast('Устгагдлаа','var(--sick)');
+  }).catch(err=>{
+    console.error('irts save failed:', err);
+    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
+  });
   renderDaily();
   if(currentView==='summary') renderSummaryTable();
-  showToast('Устгагдлаа','var(--sick)');
 }
 
 // ════════════════════════════════════════════════════════
