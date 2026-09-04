@@ -1114,7 +1114,10 @@
         return;
       }
 
-      const editable = false;
+      // After authentication, sections run in EDIT mode so the user can
+      // enter/modify their data. (Authentication is enforced by requireLogin
+      // before this frame ever loads; identity for data access is auth.uid().)
+      const editable = true;
       doc.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
         setElementEditability(element, editable);
       });
@@ -1143,11 +1146,11 @@
               return;
             }
             if (node.matches && node.matches('input, textarea, select, button, [contenteditable="true"]')) {
-              setElementEditability(node, false);
+              setElementEditability(node, true);
             }
             if (node.querySelectorAll) {
               node.querySelectorAll('input, textarea, select, button, [contenteditable="true"]').forEach(function(element) {
-                setElementEditability(element, false);
+                setElementEditability(element, true);
               });
             }
           });
