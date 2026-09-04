@@ -598,8 +598,8 @@
     }));
   }
 
-  trainingNameEl.addEventListener('input', () => window.AppData.setItem('currentTrainingName', trainingNameEl.value).catch(()=>{}));
-  instructorNameEl.addEventListener('input', () => window.AppData.setItem('currentInstructorName', instructorNameEl.value).catch(()=>{}));
+  trainingNameEl.addEventListener('input', () => window.AppData.setItem('currentTrainingName', trainingNameEl.value).catch(err => console.error('Failed to save currentTrainingName to Supabase', err)));
+  instructorNameEl.addEventListener('input', () => window.AppData.setItem('currentInstructorName', instructorNameEl.value).catch(err => console.error('Failed to save currentInstructorName to Supabase', err)));
 
   function isEntryVerified(entry){
     return Boolean(entry && entry.verifiedByScan);
@@ -874,8 +874,8 @@
       persistCurrent();
       trainingNameEl.value = '';
       instructorNameEl.value = '';
-      window.AppData.removeItem('currentTrainingName').catch(()=>{});
-      window.AppData.removeItem('currentInstructorName').catch(()=>{});
+      window.AppData.removeItem('currentTrainingName').catch(err => console.error('Failed to clear currentTrainingName in Supabase', err));
+      window.AppData.removeItem('currentInstructorName').catch(err => console.error('Failed to clear currentInstructorName in Supabase', err));
 
       renderTable();
       renderHistory();

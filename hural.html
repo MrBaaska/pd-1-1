@@ -146,7 +146,7 @@
                         hasLegacyRows = true;
                     }
                 });
-                if (hasLegacyRows) window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData)).catch(()=>{});
+                if (hasLegacyRows) window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData)).catch(err => console.error('Failed to persist legacy createdAt backfill for meeting_notes_smart_data', err));
             } else {
                 tableData = [createRow()];
             }
