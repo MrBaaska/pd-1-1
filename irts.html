@@ -1278,9 +1278,13 @@ function saveEmployee(){
   } else {
     employees.push({id:nextId++, position:pos, name, age, experience:exp, gender});
   }
-  saveAll();
+  saveAll().then(()=>{
+    showToast(editingEmpId?'Засагдлаа':'Ажилтан нэмэгдлээ');
+  }).catch(err=>{
+    console.error('irts save failed:', err);
+    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
+  });
   closeModal();
-  showToast(editingEmpId?'Засагдлаа':'Ажилтан нэмэгдлээ');
   renderDaily();
   if(currentView==='summary') renderSummaryTable();
 }
