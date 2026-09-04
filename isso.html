@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ИССО</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <style>
         :root {
             --primary-color: #1b365d;
@@ -369,8 +373,8 @@
     </div>
 
     <script>
-        // Өгөгдлийг хадгалах массив (LocalStorage-с уншина)
-        let dataList = JSON.parse(localStorage.getItem('railwayStructures')) || [];
+        // Өгөгдлийг хадгалах массив (Supabase-с уншина, сее loadDataList())
+        let dataList = [];
         const draftKey = 'railwayStructures_draft';
         const placeholderImage = 'https://images.unsplash.com/photo-1515165562839-978bbcf182c0?auto=format&fit=crop&w=500&q=80';
 
@@ -385,16 +389,24 @@
         const imagePreview = document.getElementById('imagePreview');
         const previewText = document.getElementById('previewText');
 
-        // Хуудас ачаалахад өгөгдлийг харуулах
-        document.addEventListener('DOMContentLoaded', () => {
+        // Хуудас ачаалахад өгөгдлийг Supabase-с аваад харуулах
+        document.addEventListener('DOMContentLoaded', async () => {
+            const profile = await window.AuthClient.requireAuth();
+            if (!profile) return;
             setupImageUpload();
             restoreDraft();
             setupFormAutosave();
+            try {
+                dataList = JSON.parse(await window.AppData.getItem('railwayStructures')) || [];
+            } catch (err) {
+                console.error('Failed to load railwayStructures from Supabase', err);
+                dataList = [];
+            }
             renderCards(dataList);
         });
 
         // Форм илгээх (Нэмэх эсвэл Засах)
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const km = document.getElementById('km').value;
@@ -547,9 +559,13 @@
             return item.imageData || item.imageUrl || placeholderImage;
         }
 
-        // LocalStorage руу хадгалаад дэлгэцийг шинэчлэх
-        function saveAndRender() {
-            localStorage.setItem('railwayStructures', JSON.stringify(dataList));
+        // Supabase рүү хадгалаад дэлгэцийг шинэчлэх
+        async function saveAndRender() {
+            try {
+                await window.AppData.setItem('railwayStructures', JSON.stringify(dataList));
+            } catch (err) {
+                console.error('Failed to save railwayStructures to Supabase', err);
+            }
             renderCards(dataList);
         }
 

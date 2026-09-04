@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Төмөр Замын Дэр Модны Матриц Судалгаа</title>
     <link rel="stylesheet" href="pu.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -71,14 +75,16 @@
     </div>
 
     <script>
-        // Өгөгдлийн менежмент (LocalStorage-оос авах эсвэл анхдагч утга үүсгэх)
-let tracksData = JSON.parse(localStorage.getItem('railwayTracksData')) || {
+        // Өгөгдлийн менежмент (Supabase-с авах эсвэл анхдагч утга үүсгэх)
+const DEFAULT_TRACKS_DATA = {
     "1-р Гол зам": {
         rows: 14,
         cols: 10,
         matrix: []
     }
 };
+
+let tracksData = DEFAULT_TRACKS_DATA;
 
 function createEmptyCell() {
     return { type: "", year: "" };
@@ -90,19 +96,35 @@ function createMatrix(rows, cols) {
     );
 }
 
-Object.values(tracksData).forEach(track => {
-    if (!track.matrix || !track.rows || !track.cols) return;
+function normalizeTracksData() {
+    Object.values(tracksData).forEach(track => {
+        if (!track.matrix || !track.rows || !track.cols) return;
 
-    track.matrix = Array.from({ length: track.rows }, (_, rowIndex) =>
-        Array.from({ length: track.cols }, (_, colIndex) => {
-            const cell = track.matrix[rowIndex]?.[colIndex];
-            return {
-                type: cell?.type || "",
-                year: cell?.year || ""
-            };
-        })
-    );
-});
+        track.matrix = Array.from({ length: track.rows }, (_, rowIndex) =>
+            Array.from({ length: track.cols }, (_, colIndex) => {
+                const cell = track.matrix[rowIndex]?.[colIndex];
+                return {
+                    type: cell?.type || "",
+                    year: cell?.year || ""
+                };
+            })
+        );
+    });
+}
+
+normalizeTracksData();
+
+async function loadTracksData() {
+    try {
+        const raw = await window.AppData.getItem('railwayTracksData');
+        tracksData = raw ? JSON.parse(raw) : DEFAULT_TRACKS_DATA;
+    } catch (err) {
+        console.error('Failed to load railwayTracksData from Supabase', err);
+        tracksData = DEFAULT_TRACKS_DATA;
+    }
+    normalizeTracksData();
+    currentTrackName = Object.keys(tracksData)[0];
+}
 
 const REPORT_ALL_OPTION = '__REPORT_ALL_TRACKS__';
 let currentTrackName = Object.keys(tracksData)[0];
@@ -353,7 +375,8 @@ function getSelectClass(val) {
 
 // Автомат хадгалалт ба Sync хийх
 function saveAndSync(fullRender = true) {
-    localStorage.setItem('railwayTracksData', JSON.stringify(tracksData));
+    window.AppData.setItem('railwayTracksData', JSON.stringify(tracksData))
+        .catch(err => console.error('Failed to save railwayTracksData to Supabase', err));
     triggerAutosave();
     if (fullRender) {
         renderFullTable();
@@ -363,7 +386,8 @@ function saveAndSync(fullRender = true) {
 }
 
 function triggerAutosave() {
-    localStorage.setItem('railwayTracksData', JSON.stringify(tracksData));
+    window.AppData.setItem('railwayTracksData', JSON.stringify(tracksData))
+        .catch(err => console.error('Failed to save railwayTracksData to Supabase', err));
     autosaveStatus.classList.add('show');
     setTimeout(() => {
         autosaveStatus.classList.remove('show');
@@ -621,7 +645,10 @@ function updateReport() {
 }
 
 // Эхлүүлэх
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    await loadTracksData();
     renderFullTable();
 });
     </script>

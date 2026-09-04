@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Замын 1-р хэсэг — Удирдлагын систем</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseConfig.js"></script>
+  <script src="authClient.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
@@ -1049,7 +1052,6 @@
 
 <script>
   let pageMap = {};
-  const EDIT_ACCESS_CODE = '8#4729@15';
   const UI_STORAGE_KEYS = {
     lastPage: 'ubtz:index:last-page',
     editMode: 'ubtz:index:edit-mode'
@@ -1206,26 +1208,26 @@
     updateEditModeUi();
   }
 
-  function handleEditModeButton() {
+  async function handleEditModeButton() {
     if (readEditMode()) {
+      // Real logout: end the Supabase Auth session and reload to the gate.
       writeEditMode(false);
+      if (window.AuthClient && window.AuthClient.logout) {
+        await window.AuthClient.logout();
+        return;
+      }
       refreshCurrentFrameAccessMode();
       return;
     }
 
-    const code = prompt('Засварлах код оруулна уу:');
-    if (code === null) {
-      return;
-    }
+    // Supabase Auth is the only real security gate now; a signed-in session
+    // (any of the 21 users, or the admin) is sufficient to enter edit mode.
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
 
-    if (code === EDIT_ACCESS_CODE) {
-      writeEditMode(true);
-      refreshCurrentFrameAccessMode();
-      alert('Засварлах горим идэвхжлээ.');
-      return;
-    }
-
-    alert('Код буруу байна. Харах горим хэвээр үлдлээ.');
+    writeEditMode(true);
+    refreshCurrentFrameAccessMode();
+    alert('Засварлах горим идэвхжлээ.');
   }
 
   function readLastPage() {
@@ -1686,6 +1688,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
+    // Gate the entire dashboard: require a valid, active, role='user'
+    // Supabase session before rendering any navigation or frame content.
+    if (window.AuthClient && window.AuthClient.requireAuth) {
+      const profile = await window.AuthClient.requireAuth();
+      if (!profile) return;
+    }
+
     await loadPageMap();
 
     const frame = document.getElementById('content-frame');

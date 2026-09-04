@@ -6,6 +6,10 @@
     <meta name="copyright" content="© 2026 УБТЗ. Бүх эрх хуулиар хамгаалагдсан.">
     <meta name="author" content="Б.Баасанжаргал">
     <title>Цахилгаан мэдээ мэдээлэл</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <script src="config.js"></script>
     <script>loadScript(CDN_LINKS.HTML5_QRCODE);</script>
     <style>
@@ -1369,7 +1373,7 @@ WORKERS.forEach(w => {
 });
 const newsRegistrations = {};
 let activeNewsId = null;
-const STORAGE_KEY = 'ubtz_news_autosave_v1';
+const STORAGE_KEY = 'ubtz_news_autosave_tsahilgaan_v1';
 let autosaveTimer = null;
 
 let qrScanner = null;
@@ -1623,15 +1627,16 @@ function saveAutosaveState() {
             newsCards: collectNewsCardsForSave(),
             registrations: newsRegistrations,
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        window.AppData.setItem(STORAGE_KEY, JSON.stringify(payload))
+            .catch(e => console.warn('autosave failed', e));
     } catch (e) {
         console.warn('autosave failed', e);
     }
 }
 
-function loadAutosaveState() {
+async function loadAutosaveState() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = await window.AppData.getItem(STORAGE_KEY);
         if (!raw) return false;
         const parsed = JSON.parse(raw);
         if (!parsed || !Array.isArray(parsed.newsCards)) return false;
@@ -2427,17 +2432,21 @@ document.addEventListener('keydown', function(e) {
 
 // INIT
 document.getElementById('daily-date').value = todayISODate();
-const restored = loadAutosaveState();
-syncDataWithWorkers();
-refreshManualSelect();
-renderWorkerAdmin();
-if (!restored) {
-    renderTable();
-    updateStats();
-    renderDailyReport();
-    renderAllNewsCardStats();
-}
-renderAggregateSummary();
+(async function initTsahilgaan() {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    const restored = await loadAutosaveState();
+    syncDataWithWorkers();
+    refreshManualSelect();
+    renderWorkerAdmin();
+    if (!restored) {
+        renderTable();
+        updateStats();
+        renderDailyReport();
+        renderAllNewsCardStats();
+    }
+    renderAggregateSummary();
+})();
 </script>
 </body>
 </html>

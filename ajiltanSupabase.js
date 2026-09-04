@@ -19,9 +19,13 @@
   const LEGACY_SCOREBOARD_KEY = 'ubtz-employee-scoreboard';
   const MIGRATION_DONE_FLAG_PREFIX = 'ubtz-supabase-migration-done-';
 
+  // Default project used when the page is opened without a ?id=... link
+  // (e.g. from the main site navigation), so the page works out of the box.
+  const DEFAULT_PROJECT_ID = 'MAIN';
+
   function getProjectIdFromUrl() {
     const raw = new URLSearchParams(window.location.search).get('id');
-    return raw ? raw.trim() : null;
+    return raw ? raw.trim() : DEFAULT_PROJECT_ID;
   }
 
   // Returns the project row if projectId exists and is active, otherwise null.

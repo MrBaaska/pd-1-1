@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>нөөц зам төмөр</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <script>loadStylesheet(CDN_LINKS.FONT_AWESOME_CSS);</script>
@@ -121,13 +125,25 @@
     </div>
 
     <script>
-        // LocalStorage key & Default Data (Хэрэв өгөгдөл байхгүй бол таны зургийн дагуу анхны өгөгдлийг оруулах)
+        // Supabase key & Default Data (Хэрэв өгөгдөл байхгүй бол таны зургийн дагуу анхны өгөгдлийг оруулах)
 const STORAGE_KEY = 'rail_registry_data';
 
-let railData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+const DEFAULT_RAIL_DATA = [
     { km: 531, pk: 6, ye: 21, mark: 'Р-50', length: '25', year: '1988 А', note: '' },
     { km: 532, pk: 5, ye: 18, mark: 'Р-50', length: '1', year: '1980 А', note: '' }
 ];
+
+let railData = DEFAULT_RAIL_DATA;
+
+async function loadRailData() {
+    try {
+        const raw = await window.AppData.getItem(STORAGE_KEY);
+        railData = raw ? JSON.parse(raw) : DEFAULT_RAIL_DATA;
+    } catch (err) {
+        console.error('Failed to load rail_registry_data from Supabase', err);
+        railData = DEFAULT_RAIL_DATA;
+    }
+}
 
 const railForm = document.getElementById('railForm');
 const tableBody = document.getElementById('tableBody');
@@ -149,13 +165,17 @@ const yearInput = document.getElementById('year');
 const noteInput = document.getElementById('note');
 
 // Render Table on load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    await loadRailData();
     renderTable();
 });
 
 // Save / Autosave Function
 function triggerAutosave() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(railData));
+    window.AppData.setItem(STORAGE_KEY, JSON.stringify(railData))
+        .catch(err => console.error('Failed to save rail_registry_data to Supabase', err));
     
     // Visual indicator update animation
     autosaveStatus.style.opacity = '0.3';

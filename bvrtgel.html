@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Зааварчилгааны өдөр тутмын бүртгэл</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
+<script src="authClient.js"></script>
+<script src="appDataStore.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -493,8 +497,6 @@
 
 <script>
   const MN_WEEKDAYS = ['Ням','Даваа','Мягмар','Лхагва','Пүрэв','Баасан','Бямба'];
-  const EMPLOYEE_TAB_CODE = 'Baaska@2026';
-  const EMPLOYEE_TAB_ACCESS_KEY = 'employeeTabAccessGranted';
 
   function todayKey(d = new Date()){
     return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
@@ -523,26 +525,14 @@
   }
 
   // ---------- Tabs ----------
+  // Employee tab access was previously gated by a shared hardcoded code;
+  // Supabase Auth (page-level requireAuth gate) is now the only real gate.
   function hasEmployeeTabAccess(){
-    return sessionStorage.getItem(EMPLOYEE_TAB_ACCESS_KEY) === '1';
-  }
-
-  function requestEmployeeTabAccess(){
-    const code = prompt('Бүртгэлтэй ажилтан цэсийн код оруулна уу:');
-    if (code === null) {
-      return false;
-    }
-    if (String(code).trim() === EMPLOYEE_TAB_CODE) {
-      sessionStorage.setItem(EMPLOYEE_TAB_ACCESS_KEY, '1');
-      showToast('Бүртгэлтэй ажилтан цэс нээгдлээ', 'ok');
-      return true;
-    }
-    showToast('Код буруу байна', 'warn');
-    return false;
+    return true;
   }
 
   function switchTab(name){
-    if (name === 'employees' && !hasEmployeeTabAccess() && !requestEmployeeTabAccess()) {
+    if (name === 'employees' && !hasEmployeeTabAccess()) {
       return;
     }
     document.querySelectorAll('.rail-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -554,8 +544,6 @@
   // ---------- State ----------
   let currentEntries = [];
   let history = [];
-  try { currentEntries = JSON.parse(localStorage.getItem('currentSessionEntries') || '[]'); } catch(e) { currentEntries = []; }
-  try { history = JSON.parse(localStorage.getItem('trainingHistory') || '[]'); } catch(e) { history = []; }
 
   const trainingNameEl = document.getElementById('trainingName');
   const instructorNameEl = document.getElementById('instructorName');
@@ -575,17 +563,13 @@
   // collapse state for day groups (dayKey -> collapsed bool)
   let collapsedDays = {};
 
-  // Restore meta for in-progress session
-  trainingNameEl.value = localStorage.getItem('currentTrainingName') || '';
-  instructorNameEl.value = localStorage.getItem('currentInstructorName') || '';
-  trainingNameEl.addEventListener('input', () => localStorage.setItem('currentTrainingName', trainingNameEl.value));
-  instructorNameEl.addEventListener('input', () => localStorage.setItem('currentInstructorName', instructorNameEl.value));
-
   function persistCurrent(){
-    localStorage.setItem('currentSessionEntries', JSON.stringify(currentEntries));
+    window.AppData.setItem('currentSessionEntries', JSON.stringify(currentEntries))
+      .catch(e => console.error('Failed to save currentSessionEntries to Supabase', e));
   }
   function persistHistory(){
-    localStorage.setItem('trainingHistory', JSON.stringify(history));
+    window.AppData.setItem('trainingHistory', JSON.stringify(history))
+      .catch(e => console.error('Failed to save trainingHistory to Supabase', e));
   }
 
   function ensureEntryShape(entry){
@@ -595,11 +579,27 @@
     };
   }
 
-  currentEntries = currentEntries.map(ensureEntryShape);
-  history = history.map(session => ({
-    ...session,
-    entries: Array.isArray(session.entries) ? session.entries.map(ensureEntryShape) : []
-  }));
+  // Supabase-с session state-ийг ачаалах (init-д дуудна)
+  async function loadSessionState(){
+    try {
+      currentEntries = JSON.parse(await window.AppData.getItem('currentSessionEntries') || '[]');
+    } catch(e) { currentEntries = []; }
+    try {
+      history = JSON.parse(await window.AppData.getItem('trainingHistory') || '[]');
+    } catch(e) { history = []; }
+
+    trainingNameEl.value = await window.AppData.getItem('currentTrainingName') || '';
+    instructorNameEl.value = await window.AppData.getItem('currentInstructorName') || '';
+
+    currentEntries = currentEntries.map(ensureEntryShape);
+    history = history.map(session => ({
+      ...session,
+      entries: Array.isArray(session.entries) ? session.entries.map(ensureEntryShape) : []
+    }));
+  }
+
+  trainingNameEl.addEventListener('input', () => window.AppData.setItem('currentTrainingName', trainingNameEl.value).catch(()=>{}));
+  instructorNameEl.addEventListener('input', () => window.AppData.setItem('currentInstructorName', instructorNameEl.value).catch(()=>{}));
 
   function isEntryVerified(entry){
     return Boolean(entry && entry.verifiedByScan);
@@ -874,8 +874,8 @@
       persistCurrent();
       trainingNameEl.value = '';
       instructorNameEl.value = '';
-      localStorage.removeItem('currentTrainingName');
-      localStorage.removeItem('currentInstructorName');
+      window.AppData.removeItem('currentTrainingName').catch(()=>{});
+      window.AppData.removeItem('currentInstructorName').catch(()=>{});
 
       renderTable();
       renderHistory();
@@ -1017,9 +1017,14 @@
   }
 
   // ---------- Init ----------
-  renderTable();
-  renderHistory();
-  updateTabCounts();
+  (async function initBvrtgel() {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    await loadSessionState();
+    renderTable();
+    renderHistory();
+    updateTabCounts();
+  })();
 </script>
 <script src="employee.js"></script>
 </body>

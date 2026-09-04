@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ХАВЭА-2026</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
+<script src="authClient.js"></script>
+<script src="appDataStore.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
@@ -153,7 +157,16 @@ canvas{max-height:400px}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 <script>
-let data=JSON.parse(localStorage.getItem("tableData"))||[];let perfChart=null;
+let data=[];let perfChart=null;
+async function loadDataFromSupabase(){
+    try {
+        const raw = await window.AppData.getItem("tableData");
+        data = raw ? JSON.parse(raw) : [];
+    } catch (err) {
+        console.error('Failed to load tableData from Supabase', err);
+        data = [];
+    }
+}
 
 const INSPECTORS = [
     "Сонгоно уу", 
@@ -391,7 +404,8 @@ function handleAction(i,a){
 }
 
 function saveData(){
-    localStorage.setItem("tableData",JSON.stringify(data));
+    window.AppData.setItem("tableData",JSON.stringify(data))
+        .catch(err => console.error('Failed to save tableData to Supabase', err));
     showAutosaveIndicator();
 }
 
@@ -422,7 +436,12 @@ function closeModal(){
 
 // PDF хадгалах функц устгав
 
-loadTable();
+(async function initHabea(){
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    await loadDataFromSupabase();
+    loadTable();
+})();
 </script>
 <script>
 // Monthly inspection type chart logic

@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>2026 Оны Төлөвлөгөө</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <link rel="stylesheet" href="ss.css">
     <style>
         *, *::before, *::after {
@@ -720,11 +724,8 @@ function saveAutosaveData() {
             metricLineYear: metricLineYearSelect?.value || ''
         }
     };
-    try {
-        localStorage.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(payload));
-    } catch (error) {
-        // Ignore storage quota/privacy mode errors.
-    }
+    window.AppData.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(payload))
+        .catch(() => { /* Ignore Supabase write errors (e.g. offline). */ });
 }
 
 function scheduleAutosave() {
@@ -736,9 +737,9 @@ function scheduleAutosave() {
     }, AUTOSAVE_DELAY_MS);
 }
 
-function loadAutosaveData() {
+async function loadAutosaveData() {
     try {
-        const raw = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
+        const raw = await window.AppData.getItem(AUTOSAVE_STORAGE_KEY);
         if (!raw) return;
         const payload = JSON.parse(raw);
         const savedInputs = Array.isArray(payload?.inputs) ? payload.inputs : [];
@@ -761,7 +762,7 @@ function loadAutosaveData() {
             metricLineYearSelect.value = controls.metricLineYear;
         }
     } catch (error) {
-        // Ignore malformed or unavailable localStorage data.
+        // Ignore malformed or unavailable Supabase data.
     }
 }
 
@@ -1266,20 +1267,24 @@ function setupContentProtection() {
 }
 
 setupContentProtection();
-loadAutosaveData();
-updatePerformanceAverage();
-updateBallRowTotal();
-Object.keys(averageRowConfig).forEach(updateAverageRow);
-Object.keys(totalSumRowConfig).forEach(updateCombinedRowTotal);
-Object.keys(rowSumConfig).forEach(updateRowSum);
-createRailComparisonChart();
-updateRailComparisonChart();
-createSummaryChart();
-updateSummaryChart();
-createMetricPie();
-handlePieScopeChange();
-createMetricLineChart();
-updateMetricLineChart();
+window.AuthClient.requireAuth().then(function (profile) {
+    if (!profile) return;
+    loadAutosaveData().then(() => {
+        updatePerformanceAverage();
+    updateBallRowTotal();
+    Object.keys(averageRowConfig).forEach(updateAverageRow);
+    Object.keys(totalSumRowConfig).forEach(updateCombinedRowTotal);
+    Object.keys(rowSumConfig).forEach(updateRowSum);
+    createRailComparisonChart();
+    updateRailComparisonChart();
+    createSummaryChart();
+    updateSummaryChart();
+    createMetricPie();
+    handlePieScopeChange();
+    createMetricLineChart();
+    updateMetricLineChart();
+    });
+});
 window.addEventListener('resize', () => {
     updateSummaryChart();
     updateRailComparisonChart();

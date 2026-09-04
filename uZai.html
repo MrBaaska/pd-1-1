@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Төмөр Замын Уулзварын Зайн Хяналт</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
+<script src="authClient.js"></script>
+<script src="appDataStore.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -467,9 +471,9 @@ function emptyRow(no){
 let state = { rows: [] };
 let thresholds = { warn:6, danger:3 };
 
-function loadState(){
+async function loadState(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = await window.AppData.getItem(STORAGE_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
       if(Array.isArray(parsed.rows)) return parsed;
@@ -478,9 +482,9 @@ function loadState(){
   return { rows: defaultData() };
 }
 
-function loadThresholds(){
+async function loadThresholds(){
   try{
-    const raw = localStorage.getItem(THRESH_KEY);
+    const raw = await window.AppData.getItem(THRESH_KEY);
     if(raw){ const p = JSON.parse(raw); if(typeof p.warn==='number' && typeof p.danger==='number') return p; }
   }catch(e){}
   return { warn:6, danger:3 };
@@ -494,16 +498,17 @@ function scheduleSave(){
   text.textContent = 'Хадгалж байна…';
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>{
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      localStorage.setItem(THRESH_KEY, JSON.stringify(thresholds));
+    Promise.all([
+      window.AppData.setItem(STORAGE_KEY, JSON.stringify(state)),
+      window.AppData.setItem(THRESH_KEY, JSON.stringify(thresholds))
+    ]).then(()=>{
       dot.classList.remove('saving');
       const now = new Date();
       text.textContent = 'Хадгалагдсан · ' + now.toLocaleTimeString('mn-MN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    }catch(e){
+    }).catch(e=>{
       dot.classList.remove('saving');
       text.textContent = 'Хадгалж чадсангүй';
-    }
+    });
   }, 450);
 }
 
@@ -702,10 +707,12 @@ document.getElementById('dangerThreshold').addEventListener('input', (e)=>{
 });
 
 // ---- Init ----
-(function init(){
-  const loaded = loadState();
+(async function init(){
+  const profile = await window.AuthClient.requireAuth();
+  if (!profile) return;
+  const loaded = await loadState();
   state.rows = loaded.rows;
-  thresholds = loadThresholds();
+  thresholds = await loadThresholds();
   document.getElementById('warnThreshold').value = thresholds.warn;
   document.getElementById('dangerThreshold').value = thresholds.danger;
   render();

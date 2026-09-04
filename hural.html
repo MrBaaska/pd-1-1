@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Хурлын Тэмдэглэл</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <!-- Tailwind CSS CDN -->
     <script src="config.js"></script>
     <script>loadScript(CDN_LINKS.TAILWIND);</script>
@@ -129,9 +133,9 @@
             };
         }
 
-        // Өгөгдлийг localStorage-оос ачаалах
-        function loadData() {
-            const saved = localStorage.getItem('meeting_notes_smart_data');
+        // Өгөгдлийг Supabase-с ачаалах
+        async function loadData() {
+            const saved = await window.AppData.getItem('meeting_notes_smart_data');
             if (saved) {
                 tableData = JSON.parse(saved);
                 let hasLegacyRows = false;
@@ -142,7 +146,7 @@
                         hasLegacyRows = true;
                     }
                 });
-                if (hasLegacyRows) localStorage.setItem('meeting_notes_smart_data', JSON.stringify(tableData));
+                if (hasLegacyRows) window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData)).catch(()=>{});
             } else {
                 tableData = [createRow()];
             }
@@ -151,7 +155,8 @@
 
         // Өгөгдлийг хадгалах (Autosave)
         function saveData() {
-            localStorage.setItem('meeting_notes_smart_data', JSON.stringify(tableData));
+            window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData))
+                .catch(err => console.error('Failed to save meeting_notes_smart_data to Supabase', err));
             showSaveIndicator();
             updateAnalytics();
         }
@@ -330,8 +335,12 @@
         }
 
         // Эхлүүлэх
-        loadData();
-        setInterval(refreshLockState, 1000);
+        (async function initHural(){
+            const profile = await window.AuthClient.requireAuth();
+            if (!profile) return;
+            loadData();
+            setInterval(refreshLockState, 1000);
+        })();
     </script>
 </body>
 </html>

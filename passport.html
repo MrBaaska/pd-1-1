@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ПАССПОРТЫН ҮЗЛЭГ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
+    <script>
+    // Defense-in-depth: gate this page independently (covers direct URL access).
+    document.addEventListener('DOMContentLoaded', function(){ if (window.AuthClient) window.AuthClient.requireAuth(); });
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {

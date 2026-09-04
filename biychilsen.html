@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Гэмтлийн бүртгэл</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
+<script src="authClient.js"></script>
+<script src="appDataStore.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -596,9 +600,9 @@ function getTodayDate() {
 }
 
 // Load saved statuses
-function loadStorage() {
+async function loadStorage() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = await window.AppData.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : {};
   } catch { return {}; }
 }
@@ -608,12 +612,9 @@ function saveStorage() {
   showSaving();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(statusMap));
-      showSaved();
-    } catch(e) {
-      console.error("Хадгалахад алдаа:", e);
-    }
+    window.AppData.setItem(STORAGE_KEY, JSON.stringify(statusMap))
+      .then(() => showSaved())
+      .catch(e => console.error("Хадгалахад алдаа:", e));
   }, 600);
 }
 
@@ -828,15 +829,18 @@ function renderLoadError() {
 }
 
 // Fetch sheet
-statusMap = loadStorage();
-
-fetchSheetRows()
-  .then(rows => {
-    allRows = rows;
+(async function initBiychilsen() {
+  const profile = await window.AuthClient.requireAuth();
+  if (!profile) return;
+  statusMap = await loadStorage();
+  try {
+    allRows = await fetchSheetRows();
     updateStats();
     renderRows();
-  })
-  .catch(renderLoadError);
+  } catch {
+    renderLoadError();
+  }
+})();
 </script>
 </body>
 </html>

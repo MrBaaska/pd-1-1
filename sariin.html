@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сарын Ажлын Төлөвлөгөө / Гүйцэтгэл</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <style>
         * {
             margin: 0;
@@ -723,9 +727,20 @@
                 return `work-plan-${targetYear}-${targetMonth}`;
             }
 
+            // Бүх хадгалсан сарын снапшотыг Supabase-с нэг л удаа урьдчилан татаж
+            // кэш болгодог тул loadMonthSnapshot синхрон хэвээр ажиллаж чадна.
+            let snapshotCache = {};
+            async function preloadSnapshotCache() {
+                try {
+                    snapshotCache = await window.AppData.getItemsByPrefix('work-plan-');
+                } catch (e) {
+                    snapshotCache = {};
+                }
+            }
+
             function loadMonthSnapshot(targetMonth = currentMonth, targetYear = currentYear) {
                 try {
-                    const raw = localStorage.getItem(getStorageKey(targetYear, targetMonth));
+                    const raw = snapshotCache[getStorageKey(targetYear, targetMonth)];
                     return raw ? JSON.parse(raw) : null;
                 } catch (e) {
                     return null;
@@ -764,9 +779,12 @@
                 }
 
                 try {
-                    localStorage.setItem(getStorageKey(), JSON.stringify(snapshot));
+                    const key = getStorageKey();
+                    snapshotCache[key] = JSON.stringify(snapshot);
+                    window.AppData.setItem(key, JSON.stringify(snapshot))
+                        .catch(e => console.error('Failed to save work-plan snapshot to Supabase', e));
                 } catch (e) {
-                    // LocalStorage write failure should not break user flow.
+                    // Supabase write failure should not break user flow.
                 }
             }
 
@@ -1730,8 +1748,13 @@
             populateYearOptions();
             currentYear = parseInt(yearSelect.value, 10) || currentYear;
             currentMonth = parseInt(monthSelect.value, 10) || currentMonth;
-            buildTable();
-            adjustAllExecutedQtyInputs();
+            window.AuthClient.requireAuth().then(function (profile) {
+                if (!profile) return;
+                preloadSnapshotCache().then(() => {
+                    buildTable();
+                    adjustAllExecutedQtyInputs();
+                });
+            });
         });
     </script>
 </body>

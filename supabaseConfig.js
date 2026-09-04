@@ -8,5 +8,5 @@
 //
 // Fill these two values in with your own Supabase project's settings
 // (Project Settings -> API).
-window.SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
-window.SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY';
+window.SUPABASE_URL = 'https://jwsynpxhccartmavxdgx.supabase.co';
+window.SUPABASE_ANON_KEY = 'sb_publishable_AeK3LEekqFM1pNA5u9Bbyw_jxjuEpjn';

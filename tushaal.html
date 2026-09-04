@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Төмөр замын тушаал</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <style>
         :root {
             --primary-color: #1b365d; /* Төмөр замын цэнхэр өнгө */
@@ -372,10 +376,10 @@
     </div>
 
     <script>
-        // Өгөгдлийг LocalStorage-оос авах эсвэл хоосон массив үүсгэх
+        // Өгөгдлийг Supabase-с авах эсвэл хоосон массив үүсгэх (сээ loadOrders())
         const ORDERS_KEY = 'railway_orders';
         const DRAFT_KEY = 'railway_order_draft_v1';
-        let orders = JSON.parse(localStorage.getItem(ORDERS_KEY)) || [];
+        let orders = [];
         let draftImages = [];
 
         const orderForm = document.getElementById('orderForm');
@@ -549,9 +553,19 @@
 
         // Өгөгдлийг хадгалах болон дэлгэцэнд гаргах функц
         function saveAndRender() {
-            localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+            window.AppData.setItem(ORDERS_KEY, JSON.stringify(orders))
+                .catch(err => console.error('Failed to save railway_orders to Supabase', err));
             renderCategorySummary();
             renderOrders(orders);
+        }
+
+        async function loadOrders() {
+            try {
+                orders = JSON.parse(await window.AppData.getItem(ORDERS_KEY)) || [];
+            } catch (err) {
+                console.error('Failed to load railway_orders from Supabase', err);
+                orders = [];
+            }
         }
 
         // Жагсаалтыг дэлгэцэнд харуулах
@@ -615,8 +629,13 @@
 
         // Анх ачаалахад жагсаалтыг болон draft-ийг сэргээх
         loadDraft();
-        renderCategorySummary();
-        renderOrders(orders);
+        (async function initTushaal(){
+            const profile = await window.AuthClient.requireAuth();
+            if (!profile) return;
+            await loadOrders();
+            renderCategorySummary();
+            renderOrders(orders);
+        })();
     </script>
 </body>
 </html>

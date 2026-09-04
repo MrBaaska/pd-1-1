@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Мэдээллийн хэсэг</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseConfig.js"></script>
+  <script src="authClient.js"></script>
+  <script src="appDataStore.js"></script>
+  <script>
+  // Defense-in-depth: gate this page independently (covers direct URL access).
+  document.addEventListener('DOMContentLoaded', function(){ if (window.AuthClient) window.AuthClient.requireAuth(); });
+  </script>
   <style>
     :root {
       --bg: #071428;

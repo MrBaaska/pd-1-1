@@ -690,6 +690,7 @@
     </div>
 
     <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
     <script src="ajiltanSupabase.js"></script>
     <script>
         const defaultEmployees = [
@@ -825,11 +826,13 @@
         }
 
         async function initApp() {
-            const projectId = window.AjiltanSupabase.getProjectIdFromUrl();
-            if (!projectId) {
-                showProjectError('<strong>Холбоос дутуу байна.</strong> Энэ хуудсыг нээхийн тулд линкэд <code>?id=ТАНЫ_ID</code> байх ёстой. Жишээ нь: <code>ajiltan.html?id=A001</code>.');
-                return;
+            // Require an authenticated, active Supabase 'user' before any data loads
+            // (aligns this page with the shared User-app identity; defense-in-depth).
+            if (window.AuthClient && window.AuthClient.requireAuth) {
+                const profile = await window.AuthClient.requireAuth();
+                if (!profile) return;
             }
+            const projectId = window.AjiltanSupabase.getProjectIdFromUrl();
 
             let project;
             try {
@@ -841,7 +844,7 @@
             }
 
             if (!project) {
-                showProjectError(`<strong>Линк хүчингүй байна.</strong> "${projectId}" гэсэн ID бүртгэлд олдсонгүй эсвэл идэвхгүй болсон байна. Зөв линкээ шалгана уу.`);
+                showProjectError(`<strong>Мэдээллийн сан бэлэн биш байна.</strong> "${projectId}" бүртгэл Supabase-д олдсонгүй. supabase/ajiltan_schema.sql-г ажиллуулж, MAIN төслийг үүсгэсэн эсэхээ шалгана уу.`);
                 return;
             }
 

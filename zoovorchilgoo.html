@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ажлын заавар хуудас</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <style>
         * {
             margin: 0;
@@ -1163,6 +1167,8 @@
     <script>loadScript(CDN_LINKS.JSPDF);</script>
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
+            const profile = await window.AuthClient.requireAuth();
+            if (!profile) return;
             const safetySelect = document.getElementById("safety");
             const safetyVideo = document.getElementById("safetyVideo");
             const safetyYoutube = document.getElementById("safetyYoutube");
@@ -1722,14 +1728,7 @@
 
         async function persistSavedRecords() {
             try {
-                await setRecordsToIndexedDb(savedRecords);
-                return;
-            } catch (error) {
-                console.warn("IndexedDB persist failed, fallback to localStorage:", error);
-            }
-
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRecords));
+                await window.AppData.setItem(STORAGE_KEY, JSON.stringify(savedRecords));
             } catch (error) {
                 console.error("Saved records persist error:", error);
                 throw error;
@@ -1738,29 +1737,13 @@
 
         async function loadSavedRecords() {
             try {
-                const indexedDbRecords = await getRecordsFromIndexedDb();
-                if (Array.isArray(indexedDbRecords)) {
-                    savedRecords = indexedDbRecords;
-                    return;
-                }
-            } catch (error) {
-                console.warn("IndexedDB load failed, trying localStorage:", error);
-            }
-
-            try {
-                const raw = localStorage.getItem(STORAGE_KEY);
+                const raw = await window.AppData.getItem(STORAGE_KEY);
                 if (!raw) {
                     return;
                 }
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed)) {
                     savedRecords = parsed;
-                    try {
-                        await setRecordsToIndexedDb(savedRecords);
-                        localStorage.removeItem(STORAGE_KEY);
-                    } catch (migrationError) {
-                        console.warn("Legacy migration to IndexedDB failed:", migrationError);
-                    }
                 }
             } catch (error) {
                 console.error("Saved records load error:", error);

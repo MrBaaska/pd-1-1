@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Төмөр Замын Менежментийн Систем</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabaseConfig.js"></script>
+  <script src="authClient.js"></script>
+  <script src="appDataStore.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Mongolian&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -811,26 +815,37 @@
     input.value = '';
   }
 
-  // Зураг бүрийг localStorage-д хадгалах, устгах үед хадгалах
-  function saveImages(cell) {
+  // Зураг бүрийг Supabase-д хадгалах, устгах үед хадгалах
+  async function saveImages(cell) {
     // img-cell бүрт parent tr index-ээр хадгална
     const tr = cell.closest('tr');
     const trIndex = Array.from(tr.parentNode.children).indexOf(tr);
     const imgList = cell.querySelector('.img-list');
     const imgs = Array.from(imgList.querySelectorAll('img')).map(img => img.src);
-    let auditImages = JSON.parse(localStorage.getItem('auditImages') || '{}');
-    auditImages[trIndex] = imgs;
-    localStorage.setItem('auditImages', JSON.stringify(auditImages));
+    try {
+      let auditImages = JSON.parse(await window.AppData.getItem('auditImages') || '{}');
+      auditImages[trIndex] = imgs;
+      await window.AppData.setItem('auditImages', JSON.stringify(auditImages));
+    } catch (err) {
+      console.error('Failed to save auditImages to Supabase', err);
+    }
   }
 
   // Хуудас ачааллахад зургуудыг сэргээх
-  window.addEventListener('DOMContentLoaded', function() {
+  window.addEventListener('DOMContentLoaded', async function() {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
     // ...хуучин код...
     setTimeout(restoreImages, 100);
   });
 
-  function restoreImages() {
-    let auditImages = JSON.parse(localStorage.getItem('auditImages') || '{}');
+  async function restoreImages() {
+    let auditImages = {};
+    try {
+      auditImages = JSON.parse(await window.AppData.getItem('auditImages') || '{}');
+    } catch (err) {
+      console.error('Failed to load auditImages from Supabase', err);
+    }
     document.querySelectorAll('#requirementList tr').forEach((tr, trIndex) => {
       const cell = tr.querySelector('.img-cell');
       if (!cell) return;
@@ -883,7 +898,7 @@
     if (e.key === 'Escape') hideImgModal();
   });
 
-  // Бүх текст болон select-ийн утгыг localStorage-д хадгалах
+  // Бүх текст болон select-ийн утгыг Supabase-д хадгалах
   function saveTableData() {
     const data = [];
     document.querySelectorAll('#requirementList tr').forEach(tr => {
@@ -893,12 +908,18 @@
       });
       data.push(row);
     });
-    localStorage.setItem('auditTableData', JSON.stringify(data));
+    window.AppData.setItem('auditTableData', JSON.stringify(data))
+      .catch(err => console.error('Failed to save auditTableData to Supabase', err));
   }
 
-  // localStorage-с өгөгдлийг сэргээх
-  function loadTableData() {
-    const data = JSON.parse(localStorage.getItem('auditTableData') || '[]');
+  // Supabase-с өгөгдлийг сэргээх
+  async function loadTableData() {
+    let data = [];
+    try {
+      data = JSON.parse(await window.AppData.getItem('auditTableData') || '[]');
+    } catch (err) {
+      console.error('Failed to load auditTableData from Supabase', err);
+    }
     if (!data.length) return;
     document.querySelectorAll('#requirementList tr').forEach((tr, i) => {
       const row = data[i] || [];
@@ -933,8 +954,10 @@
     }
   });
 
-    window.addEventListener('DOMContentLoaded', function() {
-      loadTableData();
+    window.addEventListener('DOMContentLoaded', async function() {
+      const profile = await window.AuthClient.requireAuth();
+      if (!profile) return;
+      await loadTableData();
       updateSelectCounter();
       updateSelectColors();
       unlockRequirementListControls();

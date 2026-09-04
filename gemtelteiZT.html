@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Гэмтэлтэй зам төмөр бүртгэл</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="authClient.js"></script>
+    <script src="appDataStore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="config.js"></script>
     <script>loadStylesheet(CDN_LINKS.FONT_AWESOME_CSS);</script>
@@ -1076,9 +1080,9 @@
         renderScheme(data, groups);
     }
 
-    // Өгөгдлийг LocalStorage-оос авах эсвэл анхдагч өгөгдлөөр эхлүүлэх
-    function loadData() {
-        const savedData = localStorage.getItem('rail_defects_data');
+    // Өгөгдлийг Supabase-с авах эсвэл анхдагч өгөгдлөөр эхлүүлэх
+    async function loadData() {
+        const savedData = await window.AppData.getItem('rail_defects_data');
         if (savedData) {
             try {
                 const data = JSON.parse(savedData);
@@ -1281,15 +1285,21 @@
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             const data = collectData();
-            localStorage.setItem('rail_defects_data', JSON.stringify(data));
-            
-            statusBadge.className = "status-badge saved";
-            statusBadge.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Автоматаар хадгалагдсан`;
-        }, 600); // 0.6 секундын дараа автоматаар LocalStorage-рүү хадгална
+            window.AppData.setItem('rail_defects_data', JSON.stringify(data)).then(() => {
+                statusBadge.className = "status-badge saved";
+                statusBadge.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Автоматаар хадгалагдсан`;
+            }).catch(err => {
+                console.error('Failed to save rail_defects_data to Supabase', err);
+                statusBadge.className = "status-badge";
+                statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Хадгалж чадсангүй`;
+            });
+        }, 600); // 0.6 секундын дараа автоматаар Supabase рүү хадгална
     }
 
     // Хуудас ачаалагдах үед ажиллах
-    window.onload = function() {
+    window.onload = async function() {
+        const profile = await window.AuthClient.requireAuth();
+        if (!profile) return;
         loadData();
     };
 </script>

@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ирц Бүртгэлийн Систем</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabaseConfig.js"></script>
+<script src="authClient.js"></script>
+<script src="appDataStore.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -759,11 +763,15 @@ const DEFAULT_EMPLOYEES = [
   {id:20, position:"Замчин",                     name:"Ч. Давааням",      age:25, experience:2,  gender:"Эр"},
 ];
 
-let employees  = JSON.parse(localStorage.getItem('irts_employees')  || 'null') || DEFAULT_EMPLOYEES;
+let employees  = DEFAULT_EMPLOYEES;
+let attendance = {};
+let reqStaff   = {total:20, min:15};
+let nextId     = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
+let currentView = 'daily';
 
-function loadAttendance(){
+function parseAttendance(raw){
   try{
-    const stored=JSON.parse(localStorage.getItem('irts_attendance')||'{}');
+    const stored=JSON.parse(raw||'{}');
     if(!stored || typeof stored!=='object' || Array.isArray(stored)) return {};
 
     return Object.keys(stored).reduce((days,dateStr)=>{
@@ -778,10 +786,23 @@ function loadAttendance(){
   }
 }
 
-let attendance = loadAttendance();
-let reqStaff   = JSON.parse(localStorage.getItem('irts_req')        || 'null') || {total:20, min:15};
-let nextId     = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
-let currentView = 'daily';
+// Loads all three keys from Supabase (see appDataStore.js) and replaces the
+// in-memory defaults above; call this before the first render.
+async function loadAllFromSupabase(){
+  try {
+    const [empRaw, attRaw, reqRaw] = await Promise.all([
+      window.AppData.getItem('irts_employees'),
+      window.AppData.getItem('irts_attendance'),
+      window.AppData.getItem('irts_req')
+    ]);
+    employees = (JSON.parse(empRaw || 'null')) || DEFAULT_EMPLOYEES;
+    attendance = parseAttendance(attRaw);
+    reqStaff = (JSON.parse(reqRaw || 'null')) || {total:20, min:15};
+    nextId = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
+  } catch (err) {
+    console.error('Failed to load irts data from Supabase', err);
+  }
+}
 
 // Summary month state
 let summaryYear  = new Date().getFullYear();
@@ -790,10 +811,12 @@ let summaryMonth = new Date().getMonth() + 1; // 1-based
 // ════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════
-function saveAll(){
-  localStorage.setItem('irts_employees',  JSON.stringify(employees));
-  localStorage.setItem('irts_attendance', JSON.stringify(attendance));
-  localStorage.setItem('irts_req',        JSON.stringify(reqStaff));
+async function saveAll(){
+  await Promise.all([
+    window.AppData.setItem('irts_employees',  JSON.stringify(employees)),
+    window.AppData.setItem('irts_attendance', JSON.stringify(attendance)),
+    window.AppData.setItem('irts_req',        JSON.stringify(reqStaff))
+  ]);
 }
 function todayStr(){ return new Date().toISOString().split('T')[0]; }
 function fmtDate(d){ if(!d)return''; const [y,m,day]=d.split('-'); return `${y}.${m}.${day}`; }
@@ -1353,7 +1376,13 @@ function init(){
   initSummaryMonthSelect();
   renderDaily();
 }
-init();
+async function start(){
+  const profile = await window.AuthClient.requireAuth();
+  if (!profile) return;
+  await loadAllFromSupabase();
+  init();
+}
+start();
 </script>
 </body>
 </html>
