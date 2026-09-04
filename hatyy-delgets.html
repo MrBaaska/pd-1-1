@@ -595,11 +595,13 @@
             if (value == null) {
                 localStorage.removeItem(MANUAL_USAGE_TOTAL_STORAGE_KEY);
                 manualUsageTotalOverride = null;
+                saveStateToSupabase();
                 return;
             }
 
             manualUsageTotalOverride = value;
             localStorage.setItem(MANUAL_USAGE_TOTAL_STORAGE_KEY, String(value));
+            saveStateToSupabase();
         }
 
         function initializeUsageTotalEditing() {

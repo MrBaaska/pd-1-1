@@ -831,12 +831,17 @@
     }
   }
 
-  // Хуудас ачааллахад зургуудыг сэргээх
+  // Хуудас ачааллахад зургуудыг болон хүснэгтэйн өгөгдлийг сэргээх (requireAuth() зөвхөн нэг дагаж, AuthClient-ийн дангина pendingResolve талаар undefined болохгүйг сэргээлжих)
   window.addEventListener('DOMContentLoaded', async function() {
     const profile = await window.AuthClient.requireAuth();
     if (!profile) return;
     // ...хуучин код...
     setTimeout(restoreImages, 100);
+    await loadTableData();
+    updateSelectCounter();
+    updateSelectColors();
+    unlockRequirementListControls();
+    setTimeout(unlockRequirementListControls, 200);
   });
 
   async function restoreImages() {
@@ -953,16 +958,6 @@
       saveTableData();
     }
   });
-
-    window.addEventListener('DOMContentLoaded', async function() {
-      const profile = await window.AuthClient.requireAuth();
-      if (!profile) return;
-      await loadTableData();
-      updateSelectCounter();
-      updateSelectColors();
-      unlockRequirementListControls();
-      setTimeout(unlockRequirementListControls, 200);
-    });
 
     document.addEventListener('input', function(e) {
       if (e.target.closest('#requirementList')) {
