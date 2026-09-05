@@ -842,6 +842,12 @@
     updateSelectColors();
     unlockRequirementListControls();
     setTimeout(unlockRequirementListControls, 200);
+    // Admin can edit this same user's auditImages/auditTableData rows
+    // directly; re-pull on any remote change instead of showing stale data.
+    window.AppData.subscribeToChanges(async () => {
+      await restoreImages();
+      await loadTableData();
+    });
   });
 
   async function restoreImages() {

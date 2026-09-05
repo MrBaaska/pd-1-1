@@ -1401,6 +1401,13 @@ async function start(){
   if (!profile) return;
   await loadAllFromSupabase();
   init();
+  // Admin can edit this same user's app_data row directly; re-pull on any
+  // remote change so irts.html never keeps showing stale local state.
+  window.AppData.subscribeToChanges(async () => {
+    await loadAllFromSupabase();
+    if (currentView === 'summary') renderSummaryTable();
+    else renderDaily();
+  });
 }
 start();
 </script>
