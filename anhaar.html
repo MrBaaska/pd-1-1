@@ -956,18 +956,12 @@
   document.addEventListener('input', function(e) {
     if (e.target.closest('#requirementList')) {
       saveTableData();
+      if (e.target.tagName === 'SELECT') {
+        updateSelectCounter();
+        updateSelectColors();
+      }
     }
   });
-
-    document.addEventListener('input', function(e) {
-      if (e.target.closest('#requirementList')) {
-        saveTableData();
-        if (e.target.tagName === 'SELECT') {
-          updateSelectCounter();
-          updateSelectColors();
-        }
-      }
-    });
 
     function updateSelectCounter() {
       // Сонголтуудыг ангиллаар нь тоолох
