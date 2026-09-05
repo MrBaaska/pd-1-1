@@ -393,6 +393,18 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const profile = await window.AuthClient.requireAuth();
             if (!profile) return;
+            // draftKey below is not scoped per Supabase user; clear it when a
+            // different account logs in on this browser so another user's
+            // unsaved draft can never leak into this session.
+            try {
+                const OWNER_MARKER_KEY = 'railwayStructures_draft_owner';
+                if (localStorage.getItem(OWNER_MARKER_KEY) !== profile.id) {
+                    localStorage.removeItem(draftKey);
+                    localStorage.setItem(OWNER_MARKER_KEY, profile.id);
+                }
+            } catch (err) {
+                console.error('Draft owner guard failed', err);
+            }
             setupImageUpload();
             restoreDraft();
             setupFormAutosave();

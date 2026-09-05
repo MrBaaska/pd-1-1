@@ -628,10 +628,22 @@
         });
 
         // Анх ачаалахад жагсаалтыг болон draft-ийг сэргээх
-        loadDraft();
         (async function initTushaal(){
             const profile = await window.AuthClient.requireAuth();
             if (!profile) return;
+            // DRAFT_KEY is plain localStorage, not scoped per Supabase user;
+            // clear it when a different account logs in on this browser so
+            // another user's unsaved draft can never leak into this session.
+            try {
+                const OWNER_MARKER_KEY = 'railway_order_draft_owner';
+                if (localStorage.getItem(OWNER_MARKER_KEY) !== profile.id) {
+                    localStorage.removeItem(DRAFT_KEY);
+                    localStorage.setItem(OWNER_MARKER_KEY, profile.id);
+                }
+            } catch (err) {
+                console.error('Draft owner guard failed', err);
+            }
+            loadDraft();
             await loadOrders();
             renderCategorySummary();
             renderOrders(orders);

@@ -2427,9 +2427,32 @@
         // ===================================
         // 4. Эхлүүлэх
         // ===================================
-        
+
+        // Hatyy-delgets' tools/removedItems/usageData localStorage cache is not
+        // scoped per Supabase user; clear it when a different account logs in
+        // on this browser so it can never leak into the new user's session
+        // (only Supabase app_data is authoritative — see loadStateFromSupabase).
+        async function guardAgainstOtherUserCache() {
+            try {
+                if (!window.AuthClient || !window.AuthClient.getCurrentUserId) return;
+                const ownerId = await window.AuthClient.getCurrentUserId();
+                if (!ownerId) return;
+                const OWNER_MARKER_KEY = 'hatyy_delgets_owner';
+                if (localStorage.getItem(OWNER_MARKER_KEY) !== ownerId) {
+                    localStorage.removeItem('tools');
+                    localStorage.removeItem('removedItems');
+                    localStorage.removeItem('usageData');
+                    localStorage.removeItem(MANUAL_USAGE_TOTAL_STORAGE_KEY);
+                    localStorage.setItem(OWNER_MARKER_KEY, ownerId);
+                }
+            } catch (err) {
+                console.error('guardAgainstOtherUserCache failed', err);
+            }
+        }
+
         // Хуудас ачаалагдахад төлөвийг дуудаж, UI-г үүсгэх
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await guardAgainstOtherUserCache();
             loadState();
             lastAppliedSheetVersion = getLatestLocalVersion();
             setActiveUsageView('log');

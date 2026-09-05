@@ -1169,6 +1169,20 @@
         document.addEventListener("DOMContentLoaded", async function () {
             const profile = await window.AuthClient.requireAuth();
             if (!profile) return;
+            // NAME_DIRECTORY_KEY/WORKER_DRAFT_KEY below are not scoped per
+            // Supabase user; clear them when a different account logs in on
+            // this browser so another section's in-progress draft can never
+            // leak into this session (savedRecords itself is Supabase-backed).
+            try {
+                const OWNER_MARKER_KEY = "ubtz_worker_draft_owner";
+                if (localStorage.getItem(OWNER_MARKER_KEY) !== profile.id) {
+                    localStorage.removeItem("ubtz_employee_names_v1");
+                    localStorage.removeItem("ubtz_worker_draft_v1");
+                    localStorage.setItem(OWNER_MARKER_KEY, profile.id);
+                }
+            } catch (err) {
+                console.error("Worker draft owner guard failed", err);
+            }
             const safetySelect = document.getElementById("safety");
             const safetyVideo = document.getElementById("safetyVideo");
             const safetyYoutube = document.getElementById("safetyYoutube");

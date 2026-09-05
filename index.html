@@ -1048,7 +1048,10 @@
     lastPage: 'ubtz:index:last-page',
     editMode: 'ubtz:index:edit-mode'
   };
-  const FRAME_STORAGE_PREFIX = 'ubtz:autosave:';
+  // Scoped per authenticated user right after login (see requireLogin() call
+  // below) so this per-page form-resume cache can never leak between
+  // different Supabase accounts sharing the same browser.
+  let FRAME_STORAGE_PREFIX = 'ubtz:autosave:';
 
   function setElementEditability(element, editable) {
     if (!(element instanceof element.ownerDocument.defaultView.HTMLElement)) {
@@ -1626,6 +1629,9 @@
     if (window.AuthClient && window.AuthClient.requireLogin) {
       const profile = await window.AuthClient.requireLogin();
       if (!profile) return;
+      if (profile.id) {
+        FRAME_STORAGE_PREFIX = 'ubtz:autosave:' + profile.id + ':';
+      }
     }
 
     await loadPageMap();

@@ -1729,6 +1729,18 @@
     window.onload = async () => {
         const profile = await window.AuthClient.requireAuth();
         if (!profile) return;
+        // STORAGE_KEYS.draft is plain localStorage, not scoped per Supabase
+        // user; clear it when a different account logs in on this browser so
+        // another user's unsaved draft can never leak into this session.
+        try {
+            const OWNER_MARKER_KEY = 'logs_pro_v2_draft_owner';
+            if (localStorage.getItem(OWNER_MARKER_KEY) !== profile.id) {
+                localStorage.removeItem(STORAGE_KEYS.draft);
+                localStorage.setItem(OWNER_MARKER_KEY, profile.id);
+            }
+        } catch (err) {
+            console.error('Draft owner guard failed', err);
+        }
         await loadStaffOptions();
         renderStaffOptions();
         await loadEntriesFromSupabase();
