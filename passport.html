@@ -535,6 +535,36 @@ let kmOrder = [];
 let sequenceSelections = {}; // { "{km}-{stage}": [ { points: [], display: '', total: 0, runs: '' } ] }
 let replaceSelections = {}; // { runKey: [point1, point2, ...] }
 
+const PASSPORT_STORAGE_KEY = 'passport_inspection_data';
+
+async function loadPassportData() {
+    try {
+        const raw = await window.AppData.getItem(PASSPORT_STORAGE_KEY);
+        const saved = raw ? JSON.parse(raw) : null;
+        if (saved && typeof saved === 'object') {
+            totalData = saved.totalData || {};
+            markedData = saved.markedData || {};
+            kmOrder = Array.isArray(saved.kmOrder) ? saved.kmOrder : Object.keys(totalData);
+            sequenceSelections = saved.sequenceSelections || {};
+            replaceSelections = saved.replaceSelections || {};
+            if (saved.statMarked !== undefined && saved.statMarked !== null) {
+                document.getElementById('statMarked').value = saved.statMarked;
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load passport data from Supabase', err);
+    }
+}
+
+function savePassportData() {
+    const payload = {
+        totalData, markedData, kmOrder, sequenceSelections, replaceSelections,
+        statMarked: document.getElementById('statMarked').value
+    };
+    window.AppData.setItem(PASSPORT_STORAGE_KEY, JSON.stringify(payload))
+        .catch(err => console.error('Failed to save passport data to Supabase', err));
+}
+
 function compareKmValues(a, b) {
     const numA = Number(a);
     const numB = Number(b);
@@ -560,16 +590,8 @@ function reorderKmBlocks() {
     });
 }
 
-function addKilometer() {
-    const km = document.getElementById('kmInput').value.trim();
-    const units = parseInt(document.getElementById('unitInput').value);
-    if (!km || !units || units < 1) return alert("Утга бүрэн оруулна уу!");
-    if (totalData[km]) return alert(`${km}-р КМ аль хэдийн нэмэгдсэн байна!`);
-
-    totalData[km] = new Array(units).fill(0);
-    markedData[km] = new Array(units).fill(false);
-    kmOrder.push(km);
-
+function createKmBlockDom(km) {
+    const units = totalData[km].length;
     const container = document.getElementById('kilometersContainer');
     // Remove empty state
     const empty = container.querySelector('.empty-state');
@@ -589,14 +611,36 @@ function addKilometer() {
 
     const grid = document.getElementById(`grid-${km}`);
     for (let i = 1; i <= units; i++) {
+        const val = totalData[km][i-1] || 0;
+        const marked = !!markedData[km][i-1];
         const unitDiv = document.createElement('div');
         unitDiv.className = 'unit-item';
         unitDiv.innerHTML = `
             <label>${i}-р үе</label>
-            <input type="number" id="unit-${km}-${i-1}" value="0" oninput="updateCount('${km}', ${i-1}, this.value)">
+            <input type="number" id="unit-${km}-${i-1}" value="${val}" class="${marked ? 'marked' : ''}" oninput="updateCount('${km}', ${i-1}, this.value)">
         `;
         grid.appendChild(unitDiv);
     }
+
+    const kmSum = totalData[km].reduce((a,b) => a+b, 0);
+    document.getElementById(`total-km-${km}`).innerText = kmSum.toLocaleString();
+}
+
+function rebuildAllKmBlocks() {
+    kmOrder.forEach(km => { if (totalData[km]) createKmBlockDom(km); });
+}
+
+function addKilometer() {
+    const km = document.getElementById('kmInput').value.trim();
+    const units = parseInt(document.getElementById('unitInput').value);
+    if (!km || !units || units < 1) return alert("Утга бүрэн оруулна уу!");
+    if (totalData[km]) return alert(`${km}-р КМ аль хэдийн нэмэгдсэн байна!`);
+
+    totalData[km] = new Array(units).fill(0);
+    markedData[km] = new Array(units).fill(false);
+    kmOrder.push(km);
+
+    createKmBlockDom(km);
 
     document.getElementById('kmInput').value = '';
     document.getElementById('unitInput').value = '';
@@ -604,6 +648,7 @@ function addKilometer() {
     updateStats();
     renderSearch();
     refreshConsecutiveSelectors();
+    savePassportData();
 }
 
 function updateCount(km, idx, value) {
@@ -611,6 +656,7 @@ function updateCount(km, idx, value) {
     const kmSum = totalData[km].reduce((a,b) => a+b, 0);
     document.getElementById(`total-km-${km}`).innerText = kmSum.toLocaleString();
     updateStats();
+    savePassportData();
 }
 
 function setMark(km, idx, state) {
@@ -628,6 +674,7 @@ function setMark(km, idx, state) {
     updateStats();
     renderSearch();
     renderConsecTable();
+    savePassportData();
 }
 
 function toggleMark(km, idx) {
@@ -830,6 +877,7 @@ function removeConsecutiveRow(km, stage, entryNo, start, end) {
     renderConsecTable();
     renderSearch();
     updateStats();
+    savePassportData();
 }
 
 function pruneInvalidReplaceSelections(groups) {
@@ -868,6 +916,7 @@ function selectConsecutivePoint(km, stage, entryNo, start, end, point) {
     }
     renderConsecTable();
     updateStats();
+    savePassportData();
 }
 
 function renderSearch() {
@@ -993,6 +1042,7 @@ function markConsecutiveRange() {
     setMark(km, stage - 1, true);
     document.getElementById('rangePointsInput').value = '';
     document.getElementById('sequenceFeedback').innerText = `${km} КМ ${stage}-р үе: ${display}${runs ? ` (${runs})` : ''} • Нийт ${sequenceSelections[key].length} удаа бүртгэв`;
+    savePassportData();
 }
 
 function describeInputPoints(rawPoints) {
@@ -1052,10 +1102,19 @@ function buildPointRuns(points) {
 }
 
 // Init
-reorderKmBlocks();
-updateStats();
-renderSearch();
-refreshConsecutiveSelectors();
+async function start() {
+    const profile = await window.AuthClient.requireAuth();
+    if (!profile) return;
+    await loadPassportData();
+    rebuildAllKmBlocks();
+    reorderKmBlocks();
+    updateStats();
+    renderSearch();
+    refreshConsecutiveSelectors();
+    const statMarkedInput = document.getElementById('statMarked');
+    if (statMarkedInput) statMarkedInput.addEventListener('input', savePassportData);
+}
+start();
 </script>
 </body>
 </html>
