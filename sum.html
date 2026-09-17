@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Суман шилжүүлгийн судалгаа</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabaseConfig.js"></script>
-<script src="authClient.js"></script>
-<script src="appDataStore.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -535,13 +531,8 @@
 
   let tableData = [];
 
-  async function loadData(){
-    let saved = null;
-    try {
-      saved = await window.AppData.getItem('rail_table_data_v4');
-    } catch (err) {
-      console.error('Failed to load rail_table_data_v4 from Supabase', err);
-    }
+  function loadData(){
+    const saved = localStorage.getItem('rail_table_data_v4');
     tableData = saved
       ? JSON.parse(saved).map((row)=> normalizeRowShape(row))
       : JSON.parse(JSON.stringify(initialData));
@@ -852,7 +843,7 @@
 
   function resetData(){
     if(confirm('Та бүх өгөгдлийг анхны байдалд нь шинэчлэхдээ итгэлтэй байна уу?')){
-      window.AppData.removeItem('rail_table_data_v4').catch(err => console.error('Failed to reset rail_table_data_v4 in Supabase', err));
+      localStorage.removeItem('rail_table_data_v4');
       tableData = JSON.parse(JSON.stringify(initialData));
       renderTable();
       showStatus('Анхны төлөвт шилжүүлсэн');
@@ -860,8 +851,7 @@
   }
 
   function saveToLocalStorage(){
-    window.AppData.setItem('rail_table_data_v4', JSON.stringify(tableData))
-      .catch(err => console.error('Failed to save rail_table_data_v4 to Supabase', err));
+    localStorage.setItem('rail_table_data_v4', JSON.stringify(tableData));
     showStatus('Автоматаар хадгалагдсан');
   }
 
@@ -874,11 +864,7 @@
     pill._t = setTimeout(()=> pill.style.opacity = '0.7', 1500);
   }
 
-  window.onload = async function() {
-    const profile = await window.AuthClient.requireAuth();
-    if (!profile) return;
-    loadData();
-  };
+  window.onload = loadData;
 </script>
 </body>
 </html>

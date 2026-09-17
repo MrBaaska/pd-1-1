@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ХАВЭА-2026</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabaseConfig.js"></script>
-<script src="authClient.js"></script>
-<script src="appDataStore.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
@@ -112,7 +108,7 @@ canvas{max-height:400px}
 <button type="submit">Нэмэх</button>
 </form>
 <h3>Бүх бүртгэл</h3>
-    <table><thead><tr><th>№</th><th>Ангилал</th><th>Илэрсэн үл тохирол / Тайлбар</th><th>Үзлэг хийсэн хугацаа</th><th>Үзлэгийн төрөл</th><th>Хяналт, шалгалт хийсэн ажилтан <br><span style="font-size:12px;color:#1976d2">Баталгаажуулалт</span></th><th>Гүйцэтгэл</th><th>Үйлдэл</th></tr></thead><tbody id="dataTable"></tbody></table>
+    <table><thead><tr><th>№</th><th>Ангилал</th><th>үл тохирол</th><th> хугацаа</th><th>Үзлэгийн төрөл</th><th>Хяналт хийсэн <br></th><th>Гүйцэтгэл</th><th>Үйлдэл</th></tr></thead><tbody id="dataTable"></tbody></table>
 <h3>Ангиллын статистик</h3>
 <div class="chart-container">
 <div class="chart-box" style="flex:1;min-width:100%"><table><thead><tr><th>Ангилал</th><th>Нийт үл тохирол</th><th>Хувь (%)</th></tr></thead><tbody id="categorySummary"></tbody><tfoot><tr><td>НИЙТ</td><td id="totalCount">0</td><td>100%</td></tr></tfoot></table></div>
@@ -157,16 +153,7 @@ canvas{max-height:400px}
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 <script>
-let data=[];let perfChart=null;
-async function loadDataFromSupabase(){
-    try {
-        const raw = await window.AppData.getItem("tableData");
-        data = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-        console.error('Failed to load tableData from Supabase', err);
-        data = [];
-    }
-}
+let data=JSON.parse(localStorage.getItem("tableData"))||[];let perfChart=null;
 
 const INSPECTORS = [
     "Сонгоно уу", 
@@ -248,10 +235,6 @@ function loadTable(){
                 </td>
                 <td>
                     <div>${item.owner}</div>
-                    <div style="margin-top:6px">
-                        <span style="font-size:12px;color:#1976d2">Гарын үсэг:</span>
-                        <!-- Add your custom content for Гарын үсэг here -->
-                    </div>
                 </td>
                 <td>
                     <select onchange="updateStatus(${i},this.value)">
@@ -404,8 +387,7 @@ function handleAction(i,a){
 }
 
 function saveData(){
-    window.AppData.setItem("tableData",JSON.stringify(data))
-        .catch(err => console.error('Failed to save tableData to Supabase', err));
+    localStorage.setItem("tableData",JSON.stringify(data));
     showAutosaveIndicator();
 }
 
@@ -436,12 +418,7 @@ function closeModal(){
 
 // PDF хадгалах функц устгав
 
-(async function initHabea(){
-    const profile = await window.AuthClient.requireAuth();
-    if (!profile) return;
-    await loadDataFromSupabase();
-    loadTable();
-})();
+loadTable();
 </script>
 <script>
 // Monthly inspection type chart logic

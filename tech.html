@@ -3,10 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>2026 Оны Төлөвлөгөө</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabaseConfig.js"></script>
-    <script src="authClient.js"></script>
-    <script src="appDataStore.js"></script>
     <link rel="stylesheet" href="ss.css">
     <style>
         *, *::before, *::after {
@@ -724,8 +720,11 @@ function saveAutosaveData() {
             metricLineYear: metricLineYearSelect?.value || ''
         }
     };
-    window.AppData.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(payload))
-        .catch((err) => { console.error('tech autosave to Supabase failed:', err); });
+    try {
+        localStorage.setItem(AUTOSAVE_STORAGE_KEY, JSON.stringify(payload));
+    } catch (error) {
+        // Ignore storage quota/privacy mode errors.
+    }
 }
 
 function scheduleAutosave() {
@@ -737,9 +736,9 @@ function scheduleAutosave() {
     }, AUTOSAVE_DELAY_MS);
 }
 
-async function loadAutosaveData() {
+function loadAutosaveData() {
     try {
-        const raw = await window.AppData.getItem(AUTOSAVE_STORAGE_KEY);
+        const raw = localStorage.getItem(AUTOSAVE_STORAGE_KEY);
         if (!raw) return;
         const payload = JSON.parse(raw);
         const savedInputs = Array.isArray(payload?.inputs) ? payload.inputs : [];
@@ -762,7 +761,7 @@ async function loadAutosaveData() {
             metricLineYearSelect.value = controls.metricLineYear;
         }
     } catch (error) {
-        // Ignore malformed or unavailable Supabase data.
+        // Ignore malformed or unavailable localStorage data.
     }
 }
 
@@ -1267,24 +1266,20 @@ function setupContentProtection() {
 }
 
 setupContentProtection();
-window.AuthClient.requireAuth().then(function (profile) {
-    if (!profile) return;
-    loadAutosaveData().then(() => {
-        updatePerformanceAverage();
-    updateBallRowTotal();
-    Object.keys(averageRowConfig).forEach(updateAverageRow);
-    Object.keys(totalSumRowConfig).forEach(updateCombinedRowTotal);
-    Object.keys(rowSumConfig).forEach(updateRowSum);
-    createRailComparisonChart();
-    updateRailComparisonChart();
-    createSummaryChart();
-    updateSummaryChart();
-    createMetricPie();
-    handlePieScopeChange();
-    createMetricLineChart();
-    updateMetricLineChart();
-    });
-});
+loadAutosaveData();
+updatePerformanceAverage();
+updateBallRowTotal();
+Object.keys(averageRowConfig).forEach(updateAverageRow);
+Object.keys(totalSumRowConfig).forEach(updateCombinedRowTotal);
+Object.keys(rowSumConfig).forEach(updateRowSum);
+createRailComparisonChart();
+updateRailComparisonChart();
+createSummaryChart();
+updateSummaryChart();
+createMetricPie();
+handlePieScopeChange();
+createMetricLineChart();
+updateMetricLineChart();
 window.addEventListener('resize', () => {
     updateSummaryChart();
     updateRailComparisonChart();

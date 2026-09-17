@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ирц Бүртгэлийн Систем</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabaseConfig.js"></script>
-<script src="authClient.js"></script>
-<script src="appDataStore.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -741,18 +737,18 @@ const SUMMARY_COLS = [
 // DATA
 // ════════════════════════════════════════════════════════
 const DEFAULT_EMPLOYEES = [
-  {id:1,  position:"Ахлах диспетчер",           name:"Б. Бат-Эрдэнэ",   age:42, experience:15, gender:"Эр"},
-  {id:2,  position:"Диспетчер",                  name:"Л. Болд",          age:35, experience:8,  gender:"Эр"},
-  {id:3,  position:"Дохиолол холбооны инженер",  name:"Г. Сүхбат",        age:29, experience:4,  gender:"Эр"},
-  {id:4,  position:"Зам шалгагч",                name:"Ц. Оюунчимэг",     age:38, experience:11, gender:"Эм"},
-  {id:5,  position:"Диспетчер",                  name:"М. Төмөр",         age:31, experience:6,  gender:"Эр"},
-  {id:6,  position:"Хяналтын инженер",           name:"П. Саруул",        age:45, experience:18, gender:"Эм"},
+  {id:1,  position:"Ахлах мастер",           name:"Г.Алтанбаатар",   age:42, experience:15, gender:"Эр"},
+  {id:2,  position:"Мастер",                  name:"Б.Баярсайхан",          age:35, experience:8,  gender:"Эр"},
+  {id:3,  position:"Бригадын дарга",  name:"М.СоёлЭрдэнэ",        age:29, experience:4,  gender:"Эм"},
+  {id:4,  position:"Бригадын дарга",                name:"Б.Энэбиш",     age:38, experience:11, gender:"Эм"},
+  {id:5,  position:"ахлах замчин",                  name:"Н.Баттулга",         age:31, experience:6,  gender:"Эр"},
+  {id:6,  position:"ахлах замчин",           name:"Б.Батхишиг",        age:45, experience:18, gender:"Эм"},
   {id:7,  position:"Техникч",                    name:"Ж. Жавхлан",       age:26, experience:2,  gender:"Эр"},
   {id:8,  position:"Оператор",                   name:"Э. Нарангарав",    age:33, experience:7,  gender:"Эм"},
   {id:9,  position:"Ахлах замчин",               name:"Н. Баярхүү",       age:50, experience:22, gender:"Эр"},
   {id:10, position:"Замчин",                     name:"Д. Ганболд",       age:24, experience:1,  gender:"Эр"},
   {id:11, position:"Диспетчер",                  name:"С. Энхмаа",        age:28, experience:3,  gender:"Эм"},
-  {id:12, position:"Дохиочин",                   name:"Б. Зоригт",        age:37, experience:9,  gender:"Эр"},
+  {id:12, position:"Замчин",                     name:"Б. Зоригт",        age:37, experience:9,  gender:"Эр"},
   {id:13, position:"Галт тэрэгний найруулагч",   name:"О. Батбаяр",       age:40, experience:13, gender:"Эр"},
   {id:14, position:"Станцийн жижүүр",            name:"А. Алтанцэцэг",   age:34, experience:8,  gender:"Эм"},
   {id:15, position:"Хэсгийн ахлагч",             name:"Т. Мөнх-Эрдэнэ",  age:47, experience:20, gender:"Эр"},
@@ -763,15 +759,11 @@ const DEFAULT_EMPLOYEES = [
   {id:20, position:"Замчин",                     name:"Ч. Давааням",      age:25, experience:2,  gender:"Эр"},
 ];
 
-let employees  = DEFAULT_EMPLOYEES;
-let attendance = {};
-let reqStaff   = {total:20, min:15};
-let nextId     = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
-let currentView = 'daily';
+let employees  = JSON.parse(localStorage.getItem('irts_employees')  || 'null') || DEFAULT_EMPLOYEES;
 
-function parseAttendance(raw){
+function loadAttendance(){
   try{
-    const stored=JSON.parse(raw||'{}');
+    const stored=JSON.parse(localStorage.getItem('irts_attendance')||'{}');
     if(!stored || typeof stored!=='object' || Array.isArray(stored)) return {};
 
     return Object.keys(stored).reduce((days,dateStr)=>{
@@ -786,23 +778,10 @@ function parseAttendance(raw){
   }
 }
 
-// Loads all three keys from Supabase (see appDataStore.js) and replaces the
-// in-memory defaults above; call this before the first render.
-async function loadAllFromSupabase(){
-  try {
-    const [empRaw, attRaw, reqRaw] = await Promise.all([
-      window.AppData.getItem('irts_employees'),
-      window.AppData.getItem('irts_attendance'),
-      window.AppData.getItem('irts_req')
-    ]);
-    employees = (JSON.parse(empRaw || 'null')) || DEFAULT_EMPLOYEES;
-    attendance = parseAttendance(attRaw);
-    reqStaff = (JSON.parse(reqRaw || 'null')) || {total:20, min:15};
-    nextId = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
-  } catch (err) {
-    console.error('Failed to load irts data from Supabase', err);
-  }
-}
+let attendance = loadAttendance();
+let reqStaff   = JSON.parse(localStorage.getItem('irts_req')        || 'null') || {total:20, min:15};
+let nextId     = employees.reduce((m,e) => Math.max(m, e.id), 0) + 1;
+let currentView = 'daily';
 
 // Summary month state
 let summaryYear  = new Date().getFullYear();
@@ -811,12 +790,10 @@ let summaryMonth = new Date().getMonth() + 1; // 1-based
 // ════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════
-async function saveAll(){
-  await Promise.all([
-    window.AppData.setItem('irts_employees',  JSON.stringify(employees)),
-    window.AppData.setItem('irts_attendance', JSON.stringify(attendance)),
-    window.AppData.setItem('irts_req',        JSON.stringify(reqStaff))
-  ]);
+function saveAll(){
+  localStorage.setItem('irts_employees',  JSON.stringify(employees));
+  localStorage.setItem('irts_attendance', JSON.stringify(attendance));
+  localStorage.setItem('irts_req',        JSON.stringify(reqStaff));
 }
 function todayStr(){ return new Date().toISOString().split('T')[0]; }
 function fmtDate(d){ if(!d)return''; const [y,m,day]=d.split('-'); return `${y}.${m}.${day}`; }
@@ -884,14 +861,10 @@ function closeReqModal(){ document.getElementById('req-modal').classList.remove(
 function saveReq(){
   reqStaff.total = parseInt(document.getElementById('req-total').value) || 20;
   reqStaff.min   = parseInt(document.getElementById('req-min').value)   || 15;
-  saveAll().then(()=>{
-    showToast('Орон тоо хадгалагдлаа');
-  }).catch(err=>{
-    console.error('irts save failed:', err);
-    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
-  });
+  saveAll();
   closeReqModal();
   renderDaily();
+  showToast('Орон тоо хадгалагдлаа');
 }
 
 // ════════════════════════════════════════════════════════
@@ -949,7 +922,7 @@ function renderDaily(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]){
     attendance[date]={};
-    saveAll().catch(err=>console.error('irts autosave (new day) failed:', err));
+    saveAll();
   }
   renderStats(date);
   const tbody=document.getElementById('daily-tbody');
@@ -991,25 +964,17 @@ function changeStatus(sel, dateStr){
   const s=sel.value;
   sel.className='status-select '+(STATUS_CSS[s]||'ss-empty');
   attendance[dateStr]={...getDayAttendance(dateStr),[id]:s};
-  saveAll().then(()=>{
-    showToast('Хадгалагдлаа');
-  }).catch(err=>{
-    console.error('irts save failed:', err);
-    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
-  });
+  saveAll();
   renderStats(dateStr);
+  showToast('Хадгалагдлаа');
 }
 
 function saveCurrentDay(){
   const date=datePicker.value||todayStr();
   if(!attendance[date]) attendance[date]={};
-  saveAll().then(()=>{
-    showToast(fmtDate(date)+' өдрийн мэдээлэл хадгалагдлаа');
-  }).catch(err=>{
-    console.error('irts save failed:', err);
-    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
-  });
+  saveAll();
   renderStats(date);
+  showToast(fmtDate(date)+' өдрийн мэдээлэл хадгалагдлаа');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1290,13 +1255,9 @@ function saveEmployee(){
   } else {
     employees.push({id:nextId++, position:pos, name, age, experience:exp, gender});
   }
-  saveAll().then(()=>{
-    showToast(editingEmpId?'Засагдлаа':'Ажилтан нэмэгдлээ');
-  }).catch(err=>{
-    console.error('irts save failed:', err);
-    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
-  });
+  saveAll();
   closeModal();
+  showToast(editingEmpId?'Засагдлаа':'Ажилтан нэмэгдлээ');
   renderDaily();
   if(currentView==='summary') renderSummaryTable();
 }
@@ -1304,14 +1265,10 @@ function saveEmployee(){
 function deleteEmployee(id){
   if(!confirm('Энэ ажилтны бүртгэлийг устгах уу?')) return;
   employees=employees.filter(e=>e.id!==id);
-  saveAll().then(()=>{
-    showToast('Устгагдлаа','var(--sick)');
-  }).catch(err=>{
-    console.error('irts save failed:', err);
-    showToast('Хадгалах үед алдаа гарлаа','var(--sick)');
-  });
+  saveAll();
   renderDaily();
   if(currentView==='summary') renderSummaryTable();
+  showToast('Устгагдлаа','var(--sick)');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1396,13 +1353,7 @@ function init(){
   initSummaryMonthSelect();
   renderDaily();
 }
-async function start(){
-  const profile = await window.AuthClient.requireAuth();
-  if (!profile) return;
-  await loadAllFromSupabase();
-  init();
-}
-start();
+init();
 </script>
 </body>
 </html>

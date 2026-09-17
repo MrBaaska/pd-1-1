@@ -4,13 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Хурлын Тэмдэглэл</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabaseConfig.js"></script>
-    <script src="authClient.js"></script>
-    <script src="appDataStore.js"></script>
     <!-- Tailwind CSS CDN -->
-    <script src="config.js"></script>
-    <script>loadScript(CDN_LINKS.TAILWIND);</script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -133,9 +128,9 @@
             };
         }
 
-        // Өгөгдлийг Supabase-с ачаалах
-        async function loadData() {
-            const saved = await window.AppData.getItem('meeting_notes_smart_data');
+        // Өгөгдлийг localStorage-оос ачаалах
+        function loadData() {
+            const saved = localStorage.getItem('meeting_notes_smart_data');
             if (saved) {
                 tableData = JSON.parse(saved);
                 let hasLegacyRows = false;
@@ -146,7 +141,7 @@
                         hasLegacyRows = true;
                     }
                 });
-                if (hasLegacyRows) window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData)).catch(err => console.error('Failed to persist legacy createdAt backfill for meeting_notes_smart_data', err));
+                if (hasLegacyRows) localStorage.setItem('meeting_notes_smart_data', JSON.stringify(tableData));
             } else {
                 tableData = [createRow()];
             }
@@ -155,8 +150,7 @@
 
         // Өгөгдлийг хадгалах (Autosave)
         function saveData() {
-            window.AppData.setItem('meeting_notes_smart_data', JSON.stringify(tableData))
-                .catch(err => console.error('Failed to save meeting_notes_smart_data to Supabase', err));
+            localStorage.setItem('meeting_notes_smart_data', JSON.stringify(tableData));
             showSaveIndicator();
             updateAnalytics();
         }
@@ -335,12 +329,8 @@
         }
 
         // Эхлүүлэх
-        (async function initHural(){
-            const profile = await window.AuthClient.requireAuth();
-            if (!profile) return;
-            loadData();
-            setInterval(refreshLockState, 1000);
-        })();
+        loadData();
+        setInterval(refreshLockState, 1000);
     </script>
 </body>
 </html>

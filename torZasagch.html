@@ -4,12 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тор Засагчийн Судалгаа</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabaseConfig.js"></script>
-    <script src="authClient.js"></script>
-    <script src="appDataStore.js"></script>
-    <script src="config.js"></script>
-    <script>loadScript(CDN_LINKS.TAILWIND);</script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -144,8 +139,8 @@
     </div>
 
     <script>
-        // Анхдагч санах ойн өгөгдөл (Жишээ), Supabase-с ачаалаасаа солигдоно
-        let records = [
+        // Анхдагч санах ойн өгөгдөл (Жишээ)
+        let records = JSON.parse(localStorage.getItem('railway_fence_records')) || [
             {
                 km: "Км 420 (ПК 4)",
                 location: "Зүүн талдаа 300м зайтай хот айл",
@@ -170,32 +165,13 @@
             }
         ];
 
-        const DEFAULT_FENCE_RECORDS = records;
-
-        async function loadRecords() {
-            try {
-                const raw = await window.AppData.getItem('railway_fence_records');
-                records = raw ? JSON.parse(raw) : DEFAULT_FENCE_RECORDS;
-            } catch (err) {
-                console.error('Failed to load railway_fence_records from Supabase', err);
-                records = DEFAULT_FENCE_RECORDS;
-            }
-            records = records.map(item => ({
-                ...item,
-                riskLevel: item.riskLevel || "Дунд"
-            }));
-        }
-
-        function saveRecords() {
-            return window.AppData.setItem('railway_fence_records', JSON.stringify(records))
-                .catch(err => console.error('Failed to save railway_fence_records to Supabase', err));
-        }
+        records = records.map(item => ({
+            ...item,
+            riskLevel: item.riskLevel || "Дунд"
+        }));
 
         // Хуудас ачаалагдахад хүснэгтийг дүүргэх
-        window.onload = async function() {
-            const profile = await window.AuthClient.requireAuth();
-            if (!profile) return;
-            await loadRecords();
+        window.onload = function() {
             renderTable();
         };
 
@@ -313,7 +289,7 @@
                 records[index] = newRecord; // Засах
             }
 
-            saveRecords();
+            localStorage.setItem('railway_fence_records', JSON.stringify(records));
             renderTable();
             closeModal();
         }
@@ -379,7 +355,7 @@
         function deleteRecord(index) {
             if (confirm("Та энэ км-ийн бүртгэлийг устгахдаа итгэлтэй байна уу?")) {
                 records.splice(index, 1);
-                saveRecords();
+                localStorage.setItem('railway_fence_records', JSON.stringify(records));
                 renderTable();
             }
         }

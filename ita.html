@@ -4,16 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Бүртгэлийн Хяналтын Систем Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabaseConfig.js"></script>
-    <script src="authClient.js"></script>
-    <script src="appDataStore.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Mongolian&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="config.js"></script>
-    <script>loadScript(CDN_LINKS.HTML5_QRCODE);</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script>loadScript(CDN_LINKS.JSPDF);</script>
-    <script>loadScript(CDN_LINKS.JSPDF_AUTOTABLE);</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -884,12 +879,11 @@
     }
 
     function saveStaffOptions() {
-        window.AppData.setItem(STORAGE_KEYS.staff, JSON.stringify(staffOptions))
-            .catch(err => console.error('Failed to save staff options to Supabase', err));
+        localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(staffOptions));
     }
 
-    async function loadStaffOptions() {
-        const saved = await window.AppData.getItem(STORAGE_KEYS.staff);
+    function loadStaffOptions() {
+        const saved = localStorage.getItem(STORAGE_KEYS.staff);
         if (!saved) {
             staffOptions = DEFAULT_STAFF_OPTIONS.map((staff) => ({ ...staff }));
             saveStaffOptions();
@@ -1063,19 +1057,8 @@
         setStaffStatus('Ажилтан жагсаалтаас устгагдлаа.');
     }
 
-    let entriesCache = null;
-    async function loadEntriesFromSupabase() {
-        try {
-            entriesCache = await window.AppData.getItem(STORAGE_KEYS.entries);
-        } catch (err) {
-            console.error('Failed to load entries from Supabase', err);
-            entriesCache = null;
-        }
-    }
-
     function loadData() {
-        // Урьдчилан ачаалсан entriesCache-ийг ашиглана; түүнийг loadEntriesFromSupabase() бөглөнө
-        const saved = entriesCache;
+        const saved = localStorage.getItem(STORAGE_KEYS.entries);
         if (!saved) {
             entries = [];
             return;
@@ -1090,8 +1073,7 @@
     }
 
     function saveToStorage() {
-        window.AppData.setItem(STORAGE_KEYS.entries, JSON.stringify(entries))
-            .catch(err => console.error('Failed to save entries to Supabase', err));
+        localStorage.setItem(STORAGE_KEYS.entries, JSON.stringify(entries));
     }
 
     function getFormState() {
@@ -1726,24 +1708,9 @@
         }
     }
 
-    window.onload = async () => {
-        const profile = await window.AuthClient.requireAuth();
-        if (!profile) return;
-        // STORAGE_KEYS.draft is plain localStorage, not scoped per Supabase
-        // user; clear it when a different account logs in on this browser so
-        // another user's unsaved draft can never leak into this session.
-        try {
-            const OWNER_MARKER_KEY = 'logs_pro_v2_draft_owner';
-            if (localStorage.getItem(OWNER_MARKER_KEY) !== profile.id) {
-                localStorage.removeItem(STORAGE_KEYS.draft);
-                localStorage.setItem(OWNER_MARKER_KEY, profile.id);
-            }
-        } catch (err) {
-            console.error('Draft owner guard failed', err);
-        }
-        await loadStaffOptions();
+    window.onload = () => {
+        loadStaffOptions();
         renderStaffOptions();
-        await loadEntriesFromSupabase();
         loadData();
         loadDraft();
         attachAutosaveListeners();

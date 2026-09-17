@@ -4,14 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Замын хэсгийн архив</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabaseConfig.js"></script>
-<script src="authClient.js"></script>
-<script src="appDataStore.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap">
-<script src="config.js"></script>
-<script>loadStylesheet(CDN_LINKS.FONT_AWESOME_CSS);</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
   --ink:        #0f1923;
@@ -662,12 +657,11 @@ body {
 
 <script>
 // ══════════════════════════════════════════════════════
-// EDIT-MODE
-// Supabase Auth is now the only security gate (see the requireAuth() call
-// near the bottom of this script) - reaching this code already requires a
-// signed-in, active session, so no separate edit password is needed anymore.
+// EDIT-MODE / LOGIN
 // ══════════════════════════════════════════════════════
-let editMode = true;
+const EDIT_CODE = '89669234';
+const EDIT_SESSION_KEY = 'railway_archive_edit';
+let editMode = sessionStorage.getItem(EDIT_SESSION_KEY) === '1';
 
 function esc(str) {
   return String(str == null ? '' : str)
@@ -675,29 +669,43 @@ function esc(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-async function openLoginModal() {
-  if (window.AuthClient && window.AuthClient.signOut) {
-    await window.AuthClient.signOut();
-  }
-  window.location.reload();
+function openLoginModal() {
+  if (editMode) { logout(); return; }
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(() => document.getElementById('loginCodeInput').focus(), 50);
 }
 function closeLoginModal(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('loginModal') && !e.target.classList.contains('modal-close')) return;
   document.getElementById('loginModal').classList.remove('open');
+  document.getElementById('loginCodeInput').value = '';
 }
 function submitLogin() {
-  // No longer used: the login modal's password field is obsolete now that
-  // Supabase Auth gates the whole page before this script's data logic runs.
-  closeLoginModal();
+  const val = document.getElementById('loginCodeInput').value.trim();
+  if (val === EDIT_CODE) {
+    editMode = true;
+    sessionStorage.setItem(EDIT_SESSION_KEY, '1');
+    closeLoginModal();
+    applyEditModeUI();
+    render();
+    toast('Засварлах горим нээгдлээ ✓', 'success');
+  } else {
+    toast('Нэвтрэх код буруу байна', 'error');
+  }
 }
 function logout() {
-  openLoginModal();
+  editMode = false;
+  sessionStorage.removeItem(EDIT_SESSION_KEY);
+  applyEditModeUI();
+  render();
+  toast('Гарлаа', 'success');
 }
 function applyEditModeUI() {
   document.getElementById('btnSave').style.display = editMode ? 'inline-flex' : 'none';
   document.getElementById('btnAddYear').style.display = editMode ? 'inline-flex' : 'none';
   const lb = document.getElementById('btnLogin');
-  lb.innerHTML = '<i class="fa-solid fa-lock-open"></i> Гарах';
+  lb.innerHTML = editMode
+    ? '<i class="fa-solid fa-lock-open"></i> Гарах'
+    : '<i class="fa-solid fa-lock"></i> Нэвтрэх';
 }
 
 // ══════════════════════════════════════════════════════
@@ -798,23 +806,21 @@ function serializeDb() {
 }
 
 function loadSaved() {
-  return window.AppData.getItem(SAVE_KEY).then(raw => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
-    try {
-      const saved = JSON.parse(raw);
-      if (saved && saved.years) {
-        db = saved;
-        return true;
-      }
-    } catch(e) {}
-    return false;
-  }).catch(() => false);
+    const saved = JSON.parse(raw);
+    if (saved && saved.years) {
+      db = saved;
+      return true;
+    }
+  } catch(e) {}
+  return false;
 }
 
 function writeAutosave(manual) {
   try {
-    window.AppData.setItem(SAVE_KEY, serializeDb())
-      .catch(e => console.error('Failed to save railway_archive_db to Supabase', e));
+    localStorage.setItem(SAVE_KEY, serializeDb());
     const dot = document.getElementById('autosaveDot');
     const txt = document.getElementById('autosaveText');
     dot.classList.add('saved');
@@ -1475,13 +1481,9 @@ function toast(msg, type = 'success') {
 }
 
 // ── INIT ──
-(async function initHeseg() {
-  const profile = await window.AuthClient.requireAuth();
-  if (!profile) return;
-  await loadSaved();
-  applyEditModeUI();
-  render();
-})();
+loadSaved();
+applyEditModeUI();
+render();
 </script>
 </body>
 </html>
