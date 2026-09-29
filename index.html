@@ -443,6 +443,49 @@
     .main.fullscreen-main {
       padding: 0;
     }
+    .main.video-fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 100dvh;
+      padding: 0;
+      overflow: hidden;
+    }
+    .main.video-fullscreen .content-frame-wrap {
+      height: 100dvh !important;
+      min-height: 100dvh;
+      max-height: 100dvh;
+      border: 0;
+      border-radius: 0;
+    }
+    .main.video-fullscreen .frame-titlebar {
+      display: none;
+    }
+    .main.video-fullscreen #content-frame {
+      height: 100% !important;
+      min-height: 100dvh !important;
+    }
+    .video-exit {
+      display: none;
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 1201;
+      width: 42px;
+      height: 42px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 6px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      cursor: pointer;
+    }
+    .main.video-fullscreen .video-exit {
+      display: flex;
+    }
 
     /* Welcome / Dashboard panel */
     .dashboard {
@@ -1003,6 +1046,10 @@
         <a href="#" class="sidebar-link" id="habea-link" data-page-key="ХАБЭА-н үзлэг"><i class="fa fa-layer-group"></i>ХАБЭА-н үзлэг</a>
       </div>
 
+      <div class="sidebar-item">
+        <a href="surgalt.html" class="sidebar-link" id="surgalt-link" data-page-key="Сургалт"><i class="fa fa-graduation-cap"></i>Сургалт</a>
+      </div>
+
       <div class="sidebar-divider"></div>
       <div class="sidebar-item has-sub" onclick="toggleSub(this)">
         <div class="sidebar-link"><i class="fa fa-calculator"></i> Паспортын үзлэг</div>
@@ -1041,6 +1088,7 @@
           <span id="frame-title-label" style="margin-left:8px; font-family:'Share Tech Mono',monospace; font-size:11px;">ХЭСГИЙН ТАНИЛЦУУЛГА</span>
         </div>
         <iframe id="content-frame" src="./heseg.html" frameborder="0" style="width:100%;" allow="camera *; microphone *; autoplay *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; fullscreen *"></iframe>
+        <button class="video-exit" id="video-exit" type="button" aria-label="Дэлгэц дүүрэн горимоос гарах" title="Гарах"><i class="fa fa-compress"></i></button>
       </div>
     </div>
   </main>
@@ -1215,6 +1263,7 @@
     'Ирц бүртгэл': 'irts.html',
     'Өдөр тутмын зааварчилгаа': 'zoovorchilgoo.html',
     'Зааварчилгаа / Зам засвар': 'zoovorchilgoo.html',
+    'Зааварчилгаа / Тор засагч': 'https://www.youtube.com/embed/tjzEKLEMjsM?autoplay=1&rel=0',
     'Цахилгаан': 'tsahilgaan.html',
     'Төлөвлөгөө / Сарын ажлын төлөвлөгөө': 'sariin.html',
     'Шийдвэр': 'shiidwer.html',
@@ -1231,6 +1280,7 @@
     'Нөөц зам төмрийн судалгаа': 'nootsZT.html',
     'Уулзварын зайн судалгаа': 'uZai.html',
     'ХАБЭА-н үзлэг': 'habea.html',
+    'Сургалт': 'surgalt.html',
     'Паспортын үзлэг': 'passport.html',
     'Замын техникийн байдал': 'tech.html',
     'Хэсгийн танилцуулга': 'heseg.html',
@@ -1506,6 +1556,7 @@
       return;
     }
     main.classList.toggle('fullscreen-main', FULLSCREEN_PAGE_KEYS.has(pageKey));
+    main.classList.toggle('video-fullscreen', pageKey === 'Зааварчилгаа / Тор засагч');
   }
 
   function getFrameContentHeight(doc) {
@@ -1716,6 +1767,13 @@
     const frame = document.getElementById('content-frame');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const videoExitButton = document.getElementById('video-exit');
+
+    if (videoExitButton) {
+      videoExitButton.addEventListener('click', function() {
+        document.querySelector('.main').classList.remove('video-fullscreen');
+      });
+    }
     const modeToggle = document.getElementById('mode-toggle');
 
     if (frame) {
@@ -1761,6 +1819,10 @@
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape') {
         closeSidebar();
+        const main = document.querySelector('.main');
+        if (main) {
+          main.classList.remove('video-fullscreen');
+        }
       }
     });
 
